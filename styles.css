@@ -6,7 +6,7 @@
 */
 
 :root {
-    /* Color system */
+    /* Default theme: Dark (current look) */
     --bg0: #0b1020;
     --bg1: #0d1b2a;
     --bg2: #111a2e;
@@ -36,6 +36,27 @@
         "Apple Color Emoji", "Segoe UI Emoji";
 }
 
+@media (prefers-color-scheme: light) {
+    :root {
+        /* Light theme overrides (keep layout + effects, adjust palette) */
+        --bg0: #f7f8fc;
+        --bg1: #eef2ff;
+        --bg2: #eaf0ff;
+
+        --card: rgba(255, 255, 255, 0.72);
+        --card-strong: rgba(255, 255, 255, 0.84);
+        --border: rgba(15, 23, 42, 0.12);
+
+        --text: rgba(15, 23, 42, 0.92);
+        --muted: rgba(15, 23, 42, 0.62);
+
+        --shadow: 0 24px 80px rgba(2, 6, 23, 0.18);
+        --shadow-soft: 0 12px 40px rgba(2, 6, 23, 0.12);
+
+        --ring: 0 0 0 4px rgba(14, 165, 233, 0.18);
+    }
+}
+
 *,
 *::before,
 *::after {
@@ -53,7 +74,7 @@ body {
     color: var(--text);
     line-height: 1.35;
 
-    /* Background */
+    /* Background (dark default uses existing colors) */
     background:
         radial-gradient(
             1200px 700px at 20% 10%,
@@ -77,6 +98,29 @@ body {
     overflow: hidden;
 }
 
+@media (prefers-color-scheme: light) {
+    body {
+        /* Light mode background: softer + brighter glows */
+        background:
+            radial-gradient(
+                1200px 700px at 20% 10%,
+                rgba(14, 165, 233, 0.18),
+                transparent 62%
+            ),
+            radial-gradient(
+                900px 600px at 80% 20%,
+                rgba(167, 139, 250, 0.16),
+                transparent 58%
+            ),
+            radial-gradient(
+                900px 700px at 40% 90%,
+                rgba(59, 130, 246, 0.1),
+                transparent 60%
+            ),
+            linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg2));
+    }
+}
+
 /* Subtle noise overlay for depth */
 body::before {
     content: "";
@@ -86,6 +130,13 @@ body::before {
     opacity: 0.08;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.75'/%3E%3C/svg%3E");
     mix-blend-mode: overlay;
+}
+
+@media (prefers-color-scheme: light) {
+    body::before {
+        opacity: 0.06;
+        mix-blend-mode: multiply;
+    }
 }
 
 /* Center card */
@@ -126,6 +177,24 @@ body::before {
     z-index: -1;
 }
 
+@media (prefers-color-scheme: light) {
+    .container::before {
+        background:
+            radial-gradient(
+                560px 240px at 15% 0%,
+                rgba(14, 165, 233, 0.14),
+                transparent 72%
+            ),
+            radial-gradient(
+                560px 240px at 85% 0%,
+                rgba(167, 139, 250, 0.12),
+                transparent 72%
+            );
+        filter: blur(18px);
+        opacity: 0.55;
+    }
+}
+
 /* Ensure pseudo elements render properly */
 .container {
     position: relative;
@@ -153,15 +222,39 @@ body::before {
         background 180ms ease;
 }
 
-#search::placeholder {
-    color: rgba(255, 255, 255, 0.55);
+@media (prefers-color-scheme: light) {
+    #search {
+        border-color: rgba(15, 23, 42, 0.14);
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: var(--shadow-soft);
+        color: rgba(15, 23, 42, 0.92);
+    }
+
+    #search::placeholder {
+        color: rgba(15, 23, 42, 0.5);
+    }
+
+    #search:focus {
+        border-color: rgba(14, 165, 233, 0.45);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-soft), var(--ring);
+        color: rgba(15, 23, 42, 0.92);
+    }
 }
 
-#search:focus {
-    border-color: rgba(110, 231, 255, 0.45);
-    box-shadow: var(--shadow-soft), var(--ring);
-    background: rgba(10, 16, 32, 0.7);
-    transform: translateY(-1px);
+@media (prefers-color-scheme: dark) {
+    #search::placeholder {
+        color: rgba(255, 255, 255, 0.55);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    #search:focus {
+        border-color: rgba(110, 231, 255, 0.45);
+        box-shadow: var(--shadow-soft), var(--ring);
+        background: rgba(10, 16, 32, 0.7);
+        transform: translateY(-1px);
+    }
 }
 
 /* Suggestions dropdown */
@@ -183,6 +276,14 @@ body::before {
     /* Make it feel like a dropdown */
     transform-origin: top center;
     animation: dropdownIn 220ms ease both;
+}
+
+@media (prefers-color-scheme: light) {
+    .suggestions {
+        background: rgba(255, 255, 255, 0.82);
+        border-color: rgba(15, 23, 42, 0.1);
+        box-shadow: var(--shadow-soft);
+    }
 }
 
 /* Hide suggestions chrome when empty (JS clears innerHTML) */
@@ -232,6 +333,26 @@ body::before {
 .suggestions li:hover {
     background: rgba(255, 255, 255, 0.08);
     transform: translateY(-1px);
+}
+
+@media (prefers-color-scheme: light) {
+    .suggestions li {
+        color: rgba(15, 23, 42, 0.86);
+    }
+
+    .suggestions li:hover {
+        background: rgba(15, 23, 42, 0.06);
+    }
+
+    .suggestions li.highlight {
+        background: linear-gradient(
+            90deg,
+            rgba(14, 165, 233, 0.18),
+            rgba(167, 139, 250, 0.1)
+        );
+        border: 1px solid rgba(14, 165, 233, 0.22);
+        color: rgba(15, 23, 42, 0.92);
+    }
 }
 
 /* Keyboard highlight (existing JS toggles .highlight) */

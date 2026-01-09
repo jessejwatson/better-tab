@@ -1,0 +1,306 @@
+/* Modern, glassy new-tab UI
+   - Subtle gradient background + noise overlay
+   - Glass card with blur, shadow, and border
+   - Better typography and focus styles
+   - Suggestions list: modern hover/highlight + smooth motion
+*/
+
+:root {
+    /* Color system */
+    --bg0: #0b1020;
+    --bg1: #0d1b2a;
+    --bg2: #111a2e;
+
+    --card: rgba(255, 255, 255, 0.08);
+    --card-strong: rgba(255, 255, 255, 0.12);
+    --border: rgba(255, 255, 255, 0.14);
+
+    --text: rgba(255, 255, 255, 0.92);
+    --muted: rgba(255, 255, 255, 0.64);
+
+    --shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+    --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.35);
+
+    --accent: #6ee7ff;
+    --accent-2: #a78bfa;
+
+    --radius-xl: 22px;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+
+    --ring: 0 0 0 4px rgba(110, 231, 255, 0.18);
+
+    --font:
+        ui-sans-serif, system-ui, -apple-system, "SF Pro Text",
+        "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial,
+        "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--text);
+    line-height: 1.35;
+
+    /* Background */
+    background:
+        radial-gradient(
+            1200px 700px at 20% 10%,
+            rgba(110, 231, 255, 0.25),
+            transparent 60%
+        ),
+        radial-gradient(
+            900px 600px at 80% 20%,
+            rgba(167, 139, 250, 0.22),
+            transparent 55%
+        ),
+        radial-gradient(
+            900px 700px at 40% 90%,
+            rgba(34, 211, 238, 0.12),
+            transparent 55%
+        ),
+        linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg2));
+    display: grid;
+    place-items: center;
+    padding: 28px;
+    overflow: hidden;
+}
+
+/* Subtle noise overlay for depth */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.75'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+}
+
+/* Center card */
+.container {
+    width: min(720px, 92vw);
+    padding: 22px;
+    border-radius: var(--radius-xl);
+
+    background: linear-gradient(180deg, var(--card), rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    transform: translateY(2px);
+    animation: popIn 520ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+/* Top "glow" */
+.container::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background:
+        radial-gradient(
+            500px 220px at 15% 0%,
+            rgba(110, 231, 255, 0.18),
+            transparent 70%
+        ),
+        radial-gradient(
+            500px 220px at 85% 0%,
+            rgba(167, 139, 250, 0.16),
+            transparent 70%
+        );
+    filter: blur(14px);
+    opacity: 0.7;
+    z-index: -1;
+}
+
+/* Ensure pseudo elements render properly */
+.container {
+    position: relative;
+}
+
+/* Search input */
+#search {
+    width: 100%;
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: var(--radius-lg);
+    padding: 16px 16px;
+    font-size: 18px;
+    letter-spacing: 0.2px;
+
+    color: var(--text);
+    background: rgba(10, 16, 32, 0.55);
+    box-shadow: var(--shadow-soft);
+
+    outline: none;
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease,
+        background 180ms ease;
+}
+
+#search::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+#search:focus {
+    border-color: rgba(110, 231, 255, 0.45);
+    box-shadow: var(--shadow-soft), var(--ring);
+    background: rgba(10, 16, 32, 0.7);
+    transform: translateY(-1px);
+}
+
+/* Suggestions dropdown */
+.suggestions {
+    list-style: none;
+    padding: 10px;
+    margin: 14px 0 0;
+    border-radius: var(--radius-lg);
+
+    background: rgba(12, 18, 38, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    max-height: min(360px, 52vh);
+    overflow: auto;
+
+    /* Make it feel like a dropdown */
+    transform-origin: top center;
+    animation: dropdownIn 220ms ease both;
+}
+
+/* Hide suggestions chrome when empty (JS clears innerHTML) */
+.suggestions:empty {
+    display: none;
+}
+
+/* Scrollbar styling (WebKit) */
+.suggestions::-webkit-scrollbar {
+    width: 10px;
+}
+
+.suggestions::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.suggestions::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    border: 2px solid rgba(12, 18, 38, 0.62);
+}
+
+.suggestions::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+/* Suggestion items */
+.suggestions li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 12px 12px;
+    border-radius: 12px;
+
+    cursor: pointer;
+    user-select: none;
+
+    color: rgba(255, 255, 255, 0.88);
+    transition:
+        background 140ms ease,
+        transform 140ms ease,
+        color 140ms ease;
+}
+
+/* Nice hover */
+.suggestions li:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+/* Keyboard highlight (existing JS toggles .highlight) */
+.suggestions li.highlight {
+    background: linear-gradient(
+        90deg,
+        rgba(110, 231, 255, 0.18),
+        rgba(167, 139, 250, 0.12)
+    );
+    border: 1px solid rgba(110, 231, 255, 0.22);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* Active press */
+.suggestions li:active {
+    transform: translateY(0px) scale(0.99);
+}
+
+/* Make the UI resilient on narrow screens */
+@media (max-width: 520px) {
+    .container {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    #search {
+        font-size: 16px;
+        padding: 14px 14px;
+        border-radius: 14px;
+    }
+
+    .suggestions {
+        padding: 8px;
+    }
+
+    .suggestions li {
+        padding: 11px 10px;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .container,
+    .suggestions,
+    #search,
+    .suggestions li {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(2px) scale(1);
+    }
+}
+
+@keyframes dropdownIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scaleY(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0px) scaleY(1);
+    }
+}

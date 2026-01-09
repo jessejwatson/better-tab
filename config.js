@@ -38,6 +38,11 @@
                 url: "https://horizon.lindisfarne.nsw.edu.au",
                 tags: ["network", "admin"],
             },
+            {
+                name: "Ctrl Console",
+                url: "https://ctrl.lindisfarne.nsw.edu.au",
+                tags: ["endpoints", "devices", "management"],
+            },
         ],
     };
 })();

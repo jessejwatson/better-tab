@@ -356,14 +356,16 @@ body::before {
 }
 
 /* Keyboard highlight (existing JS toggles .highlight) */
-.suggestions li.highlight {
-    background: linear-gradient(
-        90deg,
-        rgba(110, 231, 255, 0.18),
-        rgba(167, 139, 250, 0.12)
-    );
-    border: 1px solid rgba(110, 231, 255, 0.22);
-    color: rgba(255, 255, 255, 0.95);
+@media (prefers-color-scheme: dark) {
+    .suggestions li.highlight {
+        background: linear-gradient(
+            90deg,
+            rgba(110, 231, 255, 0.18),
+            rgba(167, 139, 250, 0.12)
+        );
+        border: 1px solid rgba(110, 231, 255, 0.22);
+        color: rgba(255, 255, 255, 0.95);
+    }
 }
 
 /* Active press */

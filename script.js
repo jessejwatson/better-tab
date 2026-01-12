@@ -97,6 +97,18 @@ function handleKeyNavigation(event) {
     if (event.key === "Enter") {
         event.preventDefault();
 
+        // Cmd+Enter: if nothing is selected yet, open the first suggestion (if any).
+        // If something is selected, Cmd shouldn't change behavior.
+        if (
+            event.metaKey &&
+            (currentIndex < 0 || currentIndex >= items.length) &&
+            items.length > 0
+        ) {
+            const url = items[0].dataset.url;
+            openUrl(url);
+            return;
+        }
+
         // If a suggestion is highlighted, open it.
         if (currentIndex >= 0 && currentIndex < items.length) {
             const url = items[currentIndex].dataset.url;

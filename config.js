@@ -43,6 +43,56 @@
                 url: "https://ctrl.lindisfarne.nsw.edu.au",
                 tags: ["endpoints", "devices", "management"],
             },
+            {
+                name: "YouTube",
+                url: "https://youtube.com",
+                tags: [],
+            },
+            {
+                name: "YouTube",
+                url: "https://youtube.com",
+                tags: [],
+            },
+            {
+                name: "Notes",
+                url: "https://jesse.notes.thewatsons.online",
+                tags: ["silverbullet", "markdown"],
+            },
+            {
+                name: "Wedding Admin",
+                url: "https://jesseandzoelle.weddings.thewatsons.online/admin/af904378ynvhfq9834hntkn",
+                tags: ["invites"],
+            },
+            {
+                name: "Lindisfarne Wiki",
+                url: "https://wiki.lindisfarne.nsw.edu.au",
+                tags: [""],
+            },
+            {
+                name: "Lindisfarne Wiki (Editor)",
+                url: "https://editor.wiki.lindisfarne.nsw.edu.au",
+                tags: [""],
+            },
+            {
+                name: "Shelly Cloud",
+                url: "https://control.shelly.cloud",
+                tags: ["lights", "blinds", "management"],
+            },
+            {
+                name: "Canva",
+                url: "https://canva.com/projects",
+                tags: ["design"],
+            },
+            {
+                name: "Image to Base64 Converter",
+                url: "https://www.base64-image.de/",
+                tags: ["utility", "utilities", "tools"],
+            },
+            {
+                name: "Freshservice",
+                url: "https://helpdesk.lindisfarne.nsw.edu.au/a/tickets/view/331620",
+                tags: ["tickets", "support"],
+            },
         ],
     };
 })();

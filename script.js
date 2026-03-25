@@ -5,16 +5,37 @@
 const config = window.BETTER_TAB_CONFIG ?? {
     searchEngineBaseUrl: "https://duckduckgo.com/",
     bookmarks: [],
+    powerups: [],
 };
 
 const searchInput = document.getElementById("search");
 const suggestionsList = document.getElementById("suggestions");
+const searchWrapper = document.getElementById("search-wrapper");
+const powerupChip = document.getElementById("active-powerup");
+
+// Chrome enforces address-bar focus for new tabs at the browser level —
+// page JavaScript cannot override it, even inside an extension.
+// Workaround: press Escape to release the address bar, which returns focus
+// to the page and triggers the listener below.
+searchInput.focus();
+window.addEventListener("focus", () => searchInput.focus());
 
 let bookmarks = Array.isArray(config.bookmarks) ? config.bookmarks : [];
+let powerups = Array.isArray(config.powerups) ? config.powerups : [];
 let currentIndex = -1;
+let activePowerup = null;
 
-searchInput.addEventListener("input", updateSuggestions);
+searchInput.addEventListener("input", handleInput);
 searchInput.addEventListener("keydown", handleKeyNavigation);
+
+function handleInput() {
+    if (activePowerup) {
+        // In powerup mode the input is the search query — don't show suggestions.
+        suggestionsList.innerHTML = "";
+        return;
+    }
+    updateSuggestions();
+}
 
 function updateSuggestions() {
     const query = searchInput.value.trim().toLowerCase();
@@ -23,53 +44,134 @@ function updateSuggestions() {
 
     if (!query) return;
 
-    // Prioritise matches in `name` over matches in `tags`.
-    // Score: 2 = name match, 1 = tags match, 0 = no match.
-    const scored = bookmarks
+    // Score bookmarks: 2 = name match, 1 = tag match.
+    const scoredBookmarks = bookmarks
         .map((bookmark) => {
             const name = (bookmark?.name ?? "").toString().toLowerCase();
-
             const tags = Array.isArray(bookmark?.tags)
                 ? bookmark.tags
                       .map((t) => (t ?? "").toString().toLowerCase())
                       .filter(Boolean)
                 : [];
-
             const nameMatch = name.includes(query);
             const tagsMatch = tags.some((t) => t.includes(query));
-
             const score = nameMatch ? 2 : tagsMatch ? 1 : 0;
-
-            return { bookmark, score };
+            return { item: bookmark, score, type: "bookmark" };
         })
-        .filter((x) => x.score > 0)
-        .sort((a, b) => {
-            // Higher score first (name matches before tag matches).
-            if (b.score !== a.score) return b.score - a.score;
+        .filter((x) => x.score > 0);
 
-            // Tie-breaker: alphabetical by name for stable-ish ordering.
-            const an = (a.bookmark?.name ?? "").toString();
-            const bn = (b.bookmark?.name ?? "").toString();
-            return an.localeCompare(bn);
-        });
+    // Score powerups: same rules as bookmarks, but promoted ones get +2
+    // so they sort above bookmarks (unless promoted: false).
+    const scoredPowerups = powerups
+        .map((powerup) => {
+            const name = (powerup?.name ?? "").toString().toLowerCase();
+            const tags = Array.isArray(powerup?.tags)
+                ? powerup.tags
+                      .map((t) => (t ?? "").toString().toLowerCase())
+                      .filter(Boolean)
+                : [];
+            const nameMatch = name.includes(query);
+            const tagsMatch = tags.some((t) => t.includes(query));
+            const baseScore = nameMatch ? 2 : tagsMatch ? 1 : 0;
+            if (baseScore === 0) return { item: powerup, score: 0, type: "powerup" };
+            const promoted = powerup.promoted !== false;
+            const score = promoted ? baseScore + 2 : baseScore;
+            return { item: powerup, score, type: "powerup" };
+        })
+        .filter((x) => x.score > 0);
 
-    scored.forEach(({ bookmark }) => {
+    const all = [...scoredBookmarks, ...scoredPowerups].sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const an = (a.item?.name ?? "").toString();
+        const bn = (b.item?.name ?? "").toString();
+        return an.localeCompare(bn);
+    });
+
+    all.forEach(({ item, type }, index) => {
         const li = document.createElement("li");
-        li.textContent = bookmark.name;
-        li.dataset.url = bookmark.url;
 
-        li.addEventListener("mousedown", (e) => {
-            // Prevent the input losing focus before navigation fires.
-            e.preventDefault();
-        });
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "suggestion-name";
+        nameSpan.textContent = item.name;
+        li.appendChild(nameSpan);
 
-        li.addEventListener("click", () => openUrl(bookmark.url));
+        if (type === "powerup") {
+            const badge = document.createElement("span");
+            badge.className = "powerup-badge";
+            badge.textContent = getPowerupLabel(item);
+            li.appendChild(badge);
+            li.classList.add("powerup-suggestion");
+            li._powerup = item;
+
+            li.addEventListener("mousedown", (e) => e.preventDefault());
+            li.addEventListener("click", () => activatePowerup(item));
+        } else {
+            li.dataset.url = item.url;
+
+            li.addEventListener("mousedown", (e) => e.preventDefault());
+            li.addEventListener("click", () => openUrl(item.url));
+        }
+
+        if (index === 0) {
+            const hint = document.createElement("span");
+            hint.className = "cmd-hint";
+            hint.innerHTML = "<kbd>⌘</kbd><kbd>↵</kbd>";
+            li.appendChild(hint);
+        }
 
         suggestionsList.appendChild(li);
     });
 }
 
+function getPowerupLabel(powerup) {
+    if (powerup.type === "search") return "Search";
+    return powerup.type ?? "Action";
+}
+
+function activatePowerup(powerup) {
+    activePowerup = powerup;
+    powerupChip.textContent = powerup.name;
+    powerupChip.hidden = false;
+    searchInput.value = "";
+    searchInput.placeholder = powerup.placeholder ?? `Search ${powerup.name}…`;
+    suggestionsList.innerHTML = "";
+    currentIndex = -1;
+    searchInput.focus();
+}
+
+function deactivatePowerup() {
+    activePowerup = null;
+    powerupChip.hidden = true;
+    powerupChip.textContent = "";
+    searchInput.value = "";
+    searchInput.placeholder = "Search or enter URL";
+    suggestionsList.innerHTML = "";
+    currentIndex = -1;
+}
+
 function handleKeyNavigation(event) {
+    // --- Powerup mode ---
+    if (activePowerup) {
+        if (event.key === "Escape") {
+            deactivatePowerup();
+            return;
+        }
+        if (event.key === "Backspace" && searchInput.value === "") {
+            deactivatePowerup();
+            return;
+        }
+        if (event.key === "Enter") {
+            event.preventDefault();
+            const query = searchInput.value.trim();
+            if (!query) return;
+            const url = buildPowerupUrl(activePowerup, query);
+            if (url) openUrl(url);
+            return;
+        }
+        return;
+    }
+
+    // --- Normal mode ---
     const items = suggestionsList.querySelectorAll("li");
 
     if (event.key === "ArrowDown") {
@@ -97,26 +199,23 @@ function handleKeyNavigation(event) {
     if (event.key === "Enter") {
         event.preventDefault();
 
-        // Cmd+Enter: if nothing is selected yet, open the first suggestion (if any).
-        // If something is selected, Cmd shouldn't change behavior.
+        // Cmd+Enter: open first suggestion (or activate first powerup) without arrowing.
         if (
             event.metaKey &&
             (currentIndex < 0 || currentIndex >= items.length) &&
             items.length > 0
         ) {
-            const url = items[0].dataset.url;
-            openUrl(url);
+            activateSuggestion(items[0]);
             return;
         }
 
-        // If a suggestion is highlighted, open it.
+        // Highlighted suggestion.
         if (currentIndex >= 0 && currentIndex < items.length) {
-            const url = items[currentIndex].dataset.url;
-            openUrl(url);
+            activateSuggestion(items[currentIndex]);
             return;
         }
 
-        // Otherwise, treat input as URL-ish or search query.
+        // No suggestion selected — treat as URL or search query.
         const raw = searchInput.value.trim();
         if (!raw) return;
 
@@ -126,9 +225,15 @@ function handleKeyNavigation(event) {
             return;
         }
 
-        const engine = getSearchEngineBaseUrl();
-        const target = buildSearchUrl(engine, raw);
-        openUrl(target);
+        openUrl(buildSearchUrl(getSearchEngineBaseUrl(), raw));
+    }
+}
+
+function activateSuggestion(li) {
+    if (li._powerup) {
+        activatePowerup(li._powerup);
+    } else {
+        openUrl(li.dataset.url);
     }
 }
 
@@ -139,8 +244,44 @@ function updateHighlight() {
     });
 }
 
+function buildPowerupUrl(powerup, query) {
+    if (powerup.type === "search") {
+        return powerup.url.replace("{search}", encodeURIComponent(query));
+    }
+    return null;
+}
+
+// Configure button — copies the editor command to clipboard.
+const configureBtn = document.getElementById("configure-btn");
+configureBtn.addEventListener("click", () => {
+    const path = config.configPath;
+    const editor = config.editor ?? "nvim";
+
+    if (!path) {
+        setDevBtnFeedback(configureBtn, "Set configPath in config.js", 2500);
+        return;
+    }
+
+    navigator.clipboard.writeText(`${editor} "${path}"`).then(() => {
+        setDevBtnFeedback(configureBtn, "Copied — paste in terminal", 2000);
+    });
+});
+
+// Reload button — opens the Extensions page for this extension.
+const reloadBtn = document.getElementById("reload-btn");
+reloadBtn.addEventListener("click", () => {
+    chrome.tabs.create({ url: "chrome://extensions/?id=" + chrome.runtime.id });
+});
+
+function setDevBtnFeedback(btn, message, duration) {
+    const original = btn.innerHTML;
+    btn.textContent = message;
+    setTimeout(() => { btn.innerHTML = original; }, duration);
+}
+
 function openUrl(url) {
     if (!url) return;
+    searchWrapper.classList.add("loading");
     window.open(url, "_self");
 }
 
@@ -150,8 +291,6 @@ function getSearchEngineBaseUrl() {
 }
 
 function buildSearchUrl(engineBaseUrl, query) {
-    // If engine base is https://duckduckgo.com/ it supports ?q=...
-    // If it's https://www.google.com/search it also supports ?q=...
     const u = new URL(engineBaseUrl, window.location.href);
     u.searchParams.set("q", query);
     return u.toString();
@@ -168,7 +307,6 @@ function normalizeToUrlIfPossible(input) {
     }
 
     // If it looks like a domain or localhost, assume https:// (or http:// for localhost).
-    // This is a heuristic, not perfect.
     const looksLikeDomain =
         input.includes(".") ||
         input.startsWith("localhost") ||

@@ -6,15 +6,6 @@
 (function () {
     window.BETTER_TAB_CONFIG = {
         /**
-         * Configure button — clicking it copies a ready-to-run command to your
-         * clipboard so you can open this file in your terminal editor.
-         * Set configPath to the absolute path of this file on disk.
-         * Set editor to your preferred terminal editor (nvim, vim, nano, etc.).
-         */
-        configPath: "/Users/jesse.watson/Developer/projects/better-tab/config.js",
-        editor: "nvim",
-
-        /**
          * Base URL for search. The app will append `?q=<query>`.
          * Examples:
          * - DuckDuckGo: https://duckduckgo.com/
@@ -55,7 +46,12 @@
             {
                 name: "YouTube",
                 url: "https://youtube.com",
-                tags: ["video", "entertainment"],
+                tags: [],
+            },
+            {
+                name: "YouTube",
+                url: "https://youtube.com",
+                tags: [],
             },
             {
                 name: "Notes",
@@ -94,17 +90,17 @@
             },
             {
                 name: "Freshservice",
-                url: "https://helpdesk.lindisfarne.nsw.edu.au/a/tickets/view/344921",
+                url: "https://helpdesk.lindisfarne.nsw.edu.au/a/tickets/board/344439",
                 tags: ["tickets", "support"],
             },
             {
                 name: "Unifi (Mahers Lane)",
-                url: "https://unifi.ml.lindisfarne.nsw.edu.au:11443",
+                url: "https://unifi.ml.lindisfarne.nsw.edu.au:8443",
                 tags: ["network", "management", "switch", "access point", "ap"],
             },
             {
                 name: "Unifi (Sunshine Ave)",
-                url: "https://unifi.sa.lindisfarne.nsw.edu.au:11443",
+                url: "https://unifi.sa.lindisfarne.nsw.edu.au:8443",
                 tags: ["network", "management", "switch", "access point", "ap"],
             },
             {
@@ -211,77 +207,7 @@
                 name: "Jamf Protect",
                 url: "https://lindisfarne.protect.jamfcloud.com",
                 tags: ["computers", "devices", "management", "alerts"],
-            },
-            {
-                name: "Traefik Dashboard (docker-api)",
-                url: "https://docker-api.lindisfarne.nsw.edu.au/dashboard/",
-                tags: [],
-            },
-        ],
-
-        /**
-         * Powerups — interactive suggestions that activate a mode when selected.
-         *
-         * Common fields:
-         *   name        {string}   Display name (shown in suggestion list and chip).
-         *   type        {string}   Powerup type. Currently supported: "search".
-         *   tags        {string[]} Optional. Matched the same way as bookmark tags.
-         *   promoted    {boolean}  Default true. Set to false to sort alongside
-         *                          bookmarks instead of above them.
-         *   placeholder {string}   Optional. Overrides the input placeholder shown
-         *                          when this powerup is active. Defaults to
-         *                          "Search <name>…".
-         *
-         * Type: "search"
-         *   url  {string}  URL template. Use {search} as the placeholder for the
-         *                  query (it will be URL-encoded automatically).
-         */
-        powerups: [
-            {
-                name: "YouTube",
-                type: "search",
-                url: "https://www.youtube.com/results?search_query={search}",
-                tags: ["video", "entertainment"],
-            },
-            {
-                name: "Google Admin - Users",
-                type: "search",
-                url: "https://admin.google.com/ac/search?query={search}&tab=ALL",
-                tags: ["management"],
-            },
-            {
-                name: "Jamf Pro - Computers",
-                type: "search",
-                url: "https://casper.lindisfarne.nsw.edu.au:8443/computers.html?query={search}&queryType=COMPUTERS&version=",
-                tags: ["mdm", "apple", "device-management", "admin"],
-                promoted: false,
-            },
-            {
-                name: "Jamf Pro - Mobile Devices",
-                type: "search",
-                url: "https://casper.lindisfarne.nsw.edu.au:8443/mobileDevices.html?query={search}&queryType=MOBILEDEVICES&version=",
-                tags: ["mdm", "apple", "device-management", "admin"],
-                promoted: false,
-            },
-            {
-                name: "Blue Iris Dashboards",
-                type: "search",
-                url: "https://blueiris.lindisfarne.nsw.edu.au:600{search}",
-                tags: ["monitoring", "cameras"],
-                placeholder: "Enter server number...",
-            },
-            {
-                name: "Search Notes",
-                type: "search",
-                url: "https://jesse.notes.thewatsons.online/search%3A{search}",
-                tags: [],
-            },
-            {
-                name: "Search GitHub Repos",
-                type: "search",
-                url: "https://github.com/?q={search}",
-                tags: ["version control"],
-            },
+            }
         ],
     };
 })();

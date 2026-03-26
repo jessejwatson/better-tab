@@ -193,19 +193,14 @@
                 tags: ["management", "security", "password", "credentials"],
             },
             {
-                name: "Shelly Control",
-                url: "https://flows.lindisfarne.nsw.edu.au/shelly/control.htm",
-                tags: ["light", "blind"],
-            },
-            {
                 name: "Shelly Management",
                 url: "https://flows.lindisfarne.nsw.edu.au/shelly/index.htm",
                 tags: ["management", "light", "blind"],
             },
             {
-                name: "Shelly Cloud",
-                url: "https://control.shelly.cloud",
-                tags: ["lights", "blinds", "management"],
+                name: "Shelly Control",
+                url: "https://flows.lindisfarne.nsw.edu.au/shelly/control.htm",
+                tags: ["light", "blind"],
             },
             {
                 name: "Jamf Protect",
@@ -216,6 +211,11 @@
                 name: "Traefik Dashboard (docker-api)",
                 url: "https://docker-api.lindisfarne.nsw.edu.au/dashboard/",
                 tags: [],
+            },
+            {
+                name: "Google Cloud",
+                url: "https://console.cloud.google.com",
+                tags: ["management"],
             },
         ],
 
@@ -235,13 +235,26 @@
          * Type: "search"
          *   url  {string}  URL template. Use {search} as the placeholder for the
          *                  query (it will be URL-encoded automatically).
+         *
+         * Type: "app"
+         *   url  {string}  The app's registered URL scheme (e.g. "claude://").
+         *                  Selecting the powerup opens it immediately — no chip
+         *                  or query step. Find an app's scheme in its Info.plist
+         *                  under CFBundleURLTypes, or search "<AppName> URL scheme".
          */
         powerups: [
+            {
+                name: "Claude",
+                type: "app",
+                url: "claude://",
+                color: "#cc785c",
+            },
             {
                 name: "YouTube",
                 type: "search",
                 url: "https://www.youtube.com/results?search_query={search}",
                 tags: ["video", "entertainment"],
+                color: "#ff0000",
             },
             {
                 name: "Google Admin - Users",

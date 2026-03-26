@@ -303,6 +303,12 @@ body::before {
     }
 }
 
+.powerup-chip--colored {
+    color: var(--powerup-color);
+    border-color: color-mix(in srgb, var(--powerup-color) 40%, transparent);
+    background: color-mix(in srgb, var(--powerup-color) 12%, transparent);
+}
+
 /* Search input — bare inside the wrapper */
 #search {
     flex: 1;
@@ -471,6 +477,12 @@ body::before {
         border-color: rgba(14, 165, 233, 0.25);
         color: #0ea5e9;
     }
+}
+
+.powerup-badge--colored {
+    color: var(--powerup-color);
+    border-color: color-mix(in srgb, var(--powerup-color) 35%, transparent);
+    background: color-mix(in srgb, var(--powerup-color) 10%, transparent);
 }
 
 /* Cmd+Enter hint on first suggestion */

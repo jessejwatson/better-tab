@@ -99,6 +99,10 @@ function updateSuggestions() {
             const badge = document.createElement("span");
             badge.className = "powerup-badge";
             badge.textContent = getPowerupLabel(item);
+            if (item.color) {
+                badge.classList.add("powerup-badge--colored");
+                badge.style.setProperty("--powerup-color", item.color);
+            }
             li.appendChild(badge);
             li.classList.add("powerup-suggestion");
             li._powerup = item;
@@ -125,12 +129,24 @@ function updateSuggestions() {
 
 function getPowerupLabel(powerup) {
     if (powerup.type === "search") return "Search";
+    if (powerup.type === "app") return "Open App";
     return powerup.type ?? "Action";
 }
 
 function activatePowerup(powerup) {
+    // App powerups open immediately and close the tab.
+    if (powerup.type === "app") {
+        window.location.href = powerup.url;
+        chrome.tabs.getCurrent((tab) => chrome.tabs.remove(tab.id));
+        return;
+    }
+
     activePowerup = powerup;
     powerupChip.textContent = powerup.name;
+    if (powerup.color) {
+        powerupChip.classList.add("powerup-chip--colored");
+        powerupChip.style.setProperty("--powerup-color", powerup.color);
+    }
     powerupChip.hidden = false;
     searchInput.value = "";
     searchInput.placeholder = powerup.placeholder ?? `Search ${powerup.name}…`;
@@ -143,6 +159,8 @@ function deactivatePowerup() {
     activePowerup = null;
     powerupChip.hidden = true;
     powerupChip.textContent = "";
+    powerupChip.classList.remove("powerup-chip--colored");
+    powerupChip.style.removeProperty("--powerup-color");
     searchInput.value = "";
     searchInput.placeholder = "Search or enter URL";
     suggestionsList.innerHTML = "";

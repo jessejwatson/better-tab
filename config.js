@@ -15,6 +15,21 @@
         editor: "nvim",
 
         /**
+         * Optional wallpaper image (relative to the extension root).
+         * Supported: "wallpaper.png", "wallpaper.jpg", or any valid path.
+         * Omit or set to undefined to use the default gradient background.
+         */
+        wallpaper: "wallpaper.png",
+
+        /**
+         * Color theme. Options:
+         *   "system"  — follow the OS preference (default)
+         *   "dark"    — always dark
+         *   "light"   — always light
+         */
+        theme: "dark",
+
+        /**
          * Base URL for search. The app will append `?q=<query>`.
          * Examples:
          * - DuckDuckGo: https://duckduckgo.com/

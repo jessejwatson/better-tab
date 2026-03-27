@@ -8,17 +8,53 @@ const config = window.BETTER_TAB_CONFIG ?? {
     powerups: [],
 };
 
+// Apply theme — resolves "system" to the actual OS preference so CSS can use
+// a single data-theme attribute selector instead of @media queries.
+(function applyTheme() {
+    const pref = (config.theme ?? "system").toLowerCase();
+    let resolved;
+    if (pref === "dark" || pref === "light") {
+        resolved = pref;
+    } else {
+        resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.dataset.theme = resolved;
+    // Keep in sync if system theme changes and user chose "system".
+    if (pref === "system") {
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+            document.documentElement.dataset.theme = e.matches ? "dark" : "light";
+        });
+    }
+})();
+
+if (config.wallpaper) {
+    document.body.classList.add("has-wallpaper");
+    document.body.style.background = `url("${config.wallpaper}") center / cover no-repeat fixed`;
+}
+
 const searchInput = document.getElementById("search");
 const suggestionsList = document.getElementById("suggestions");
 const searchWrapper = document.getElementById("search-wrapper");
 const powerupChip = document.getElementById("active-powerup");
+const searchHint = document.querySelector(".search-hint");
 
 // Chrome enforces address-bar focus for new tabs at the browser level —
 // page JavaScript cannot override it, even inside an extension.
 // Workaround: press Escape to release the address bar, which returns focus
 // to the page and triggers the listener below.
+// Ctrl+S focuses the search bar from anywhere (notes textarea blocks it via stopPropagation).
+window.addEventListener("keydown", (e) => {
+    if (e.key === "s" && e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        searchInput.focus();
+    }
+});
+
 searchInput.focus();
-window.addEventListener("focus", () => searchInput.focus());
+window.addEventListener("focus", () => {
+    if (window._notesTextareaActive?.()) return;
+    searchInput.focus();
+});
 
 let bookmarks = Array.isArray(config.bookmarks) ? config.bookmarks : [];
 let powerups = Array.isArray(config.powerups) ? config.powerups : [];
@@ -155,6 +191,7 @@ function activatePowerup(powerup) {
         powerupChip.style.setProperty("--powerup-color", powerup.color);
     }
     powerupChip.hidden = false;
+    searchHint.hidden = true;
     searchInput.value = "";
     searchInput.placeholder = powerup.placeholder ?? `Search ${powerup.name}…`;
     suggestionsList.innerHTML = "";
@@ -165,6 +202,7 @@ function activatePowerup(powerup) {
 function deactivatePowerup() {
     activePowerup = null;
     powerupChip.hidden = true;
+    searchHint.hidden = false;
     powerupChip.textContent = "";
     powerupChip.classList.remove("powerup-chip--colored");
     powerupChip.style.removeProperty("--powerup-color");

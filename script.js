@@ -22,6 +22,13 @@ window.addEventListener("focus", () => searchInput.focus());
 
 let bookmarks = Array.isArray(config.bookmarks) ? config.bookmarks : [];
 let powerups = Array.isArray(config.powerups) ? config.powerups : [];
+
+// Merge bookmarks saved via the popup, skipping any URLs already in config.
+chrome.storage?.local.get(["bookmarks"], (result) => {
+    const stored = Array.isArray(result.bookmarks) ? result.bookmarks : [];
+    const configUrls = new Set(bookmarks.map((b) => b.url));
+    bookmarks = [...bookmarks, ...stored.filter((b) => !configUrls.has(b.url))];
+});
 let currentIndex = -1;
 let activePowerup = null;
 

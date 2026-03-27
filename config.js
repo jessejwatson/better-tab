@@ -217,6 +217,11 @@
                 url: "https://console.cloud.google.com",
                 tags: ["management"],
             },
+            {
+                name: "CCTV Alerting Config",
+                url: "https://flows.lindisfarne.nsw.edu.au/cctv-alerting-config/",
+                tags: ["management", "camera"],
+            },
         ],
 
         /**

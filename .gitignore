@@ -1,11 +1,3 @@
-# Local wallpaper images
-wallpaper.jpg
-wallpaper.png
-wallpaper.*
-
-# Custom icon (users add their own)
-icon.png
-
 # Claude Code
 .claude
 

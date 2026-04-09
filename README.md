@@ -2,8 +2,6 @@
 
 A keyboard-driven new tab page for Chrome and Chromium browsers. Search bookmarks, trigger powerups, take markdown notes, and show a glassy clock — all without leaving the keyboard.
 
-![Better Tab screenshot](screenshot.png)
-
 ---
 
 ## Features
@@ -29,23 +27,12 @@ Better Tab is a local Chrome extension (not on the Web Store). You load it direc
     git clone https://github.com/your-username/better-tab.git
     ```
 
-2. **Copy the example config**
-
-    ```
-    cp config.example.js config.js
-    ```
-
-    Then edit `config.js` with your bookmarks and preferences (see [Configuration](#configuration) below).
-
-3. **Add an icon**  
-   Place a `icon.png` (128×128px recommended) in the extension folder.
-
-4. **Load the extension**
+2. **Load the extension**
     - Open `chrome://extensions`
     - Enable **Developer mode** (top right)
     - Click **Load unpacked** and select the extension folder
 
-5. Open a new tab — Better Tab will load automatically.
+3. Open a new tab — Better Tab will load automatically.
 
 > **Note:** After editing `config.js`, click the reload button on `chrome://extensions` (or use the **Reload extension** button at the bottom-right of the new tab page).
 

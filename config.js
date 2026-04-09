@@ -7,7 +7,6 @@
 
 (function () {
     window.BETTER_TAB_CONFIG = {
-
         // ── Editor ────────────────────────────────────────────────────────────
         // The "Edit config" button copies a ready-to-run terminal command.
         // Set configPath to the absolute path of this file on disk.
@@ -70,11 +69,6 @@
                 name: "Notion",
                 url: "https://notion.so",
                 tags: ["notes", "docs"],
-            },
-            {
-                name: "Linear",
-                url: "https://linear.app",
-                tags: ["tasks", "dev"],
             },
             {
                 name: "Figma",

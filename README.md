@@ -24,23 +24,26 @@ A keyboard-driven new tab page for Chrome and Chromium browsers. Search bookmark
 Better Tab is a local Chrome extension (not on the Web Store). You load it directly from the folder.
 
 1. **Download or clone** this repository
-   ```
-   git clone https://github.com/your-username/better-tab.git
-   ```
+
+    ```
+    git clone https://github.com/your-username/better-tab.git
+    ```
 
 2. **Copy the example config**
-   ```
-   cp config.example.js config.js
-   ```
-   Then edit `config.js` with your bookmarks and preferences (see [Configuration](#configuration) below).
+
+    ```
+    cp config.example.js config.js
+    ```
+
+    Then edit `config.js` with your bookmarks and preferences (see [Configuration](#configuration) below).
 
 3. **Add an icon**  
    Place a `icon.png` (128×128px recommended) in the extension folder.
 
 4. **Load the extension**
-   - Open `chrome://extensions`
-   - Enable **Developer mode** (top right)
-   - Click **Load unpacked** and select the extension folder
+    - Open `chrome://extensions`
+    - Enable **Developer mode** (top right)
+    - Click **Load unpacked** and select the extension folder
 
 5. Open a new tab — Better Tab will load automatically.
 
@@ -137,17 +140,17 @@ Powerups appear in the suggestion list and activate a special mode when selected
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|---|---|
-| Type | Search bookmarks and powerups |
-| `↑` / `↓` or `Tab` / `Shift+Tab` | Navigate suggestions |
-| `Enter` | Open highlighted result |
-| `Cmd+Enter` | Open first result |
-| `Escape` / `Backspace` | Dismiss / deactivate powerup |
-| `Ctrl+S` | Focus search from anywhere |
-| `Ctrl+N` | Open notes / focus textarea |
-| `Ctrl+Shift+N` | Toggle notes panel |
-| `Ctrl+H` (hold) | Peek at wallpaper — hides all UI |
+| Shortcut                         | Action                           |
+| -------------------------------- | -------------------------------- |
+| Type                             | Search bookmarks and powerups    |
+| `↑` / `↓` or `Tab` / `Shift+Tab` | Navigate suggestions             |
+| `Enter`                          | Open highlighted result          |
+| `Cmd+Enter`                      | Open first result                |
+| `Escape` / `Backspace`           | Dismiss / deactivate powerup     |
+| `Ctrl+S`                         | Focus search from anywhere       |
+| `Ctrl+N`                         | Open notes / focus textarea      |
+| `Ctrl+Shift+N`                   | Toggle notes panel               |
+| `Ctrl+H` (hold)                  | Peek at wallpaper — hides all UI |
 
 ---
 
@@ -161,4 +164,3 @@ The notes panel supports Markdown including headings, lists, task checkboxes, bo
 
 - No data is sent anywhere except DuckDuckGo autocomplete requests (when `searchSuggestions` is enabled, can be disabled).
 - Bookmarks and notes are stored locally in `chrome.storage.local`.
-- `config.js` is never committed to git.

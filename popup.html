@@ -5,25 +5,27 @@
         <link rel="stylesheet" href="popup.css" />
     </head>
     <body>
-        <div id="status-badge" class="status-badge" hidden></div>
-        <form id="bookmark-form">
-            <div class="field">
-                <label for="name">Name</label>
-                <input type="text" id="name" placeholder="Page name" required autocomplete="off" />
-            </div>
-            <div class="field">
-                <label for="url">URL</label>
-                <input type="text" id="url" placeholder="https://…" required autocomplete="off" />
-            </div>
-            <div class="field">
-                <label for="tags">
-                    Tags
-                    <span class="label-hint">comma-separated</span>
-                </label>
-                <input type="text" id="tags" placeholder="work, tools, reference" autocomplete="off" />
-            </div>
-            <div class="actions" id="actions"></div>
-        </form>
+        <div class="popup-card">
+            <div id="status-badge" class="status-badge" hidden></div>
+            <form id="bookmark-form">
+                <div class="field">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" placeholder="Page name" required autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label for="url">URL</label>
+                    <input type="text" id="url" placeholder="https://…" required autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label for="tags">
+                        Tags
+                        <span class="label-hint">comma-separated</span>
+                    </label>
+                    <input type="text" id="tags" placeholder="work, tools, reference" autocomplete="off" />
+                </div>
+                <div class="actions" id="actions"></div>
+            </form>
+        </div>
         <script src="config.js"></script>
         <script src="popup.js"></script>
     </body>

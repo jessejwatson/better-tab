@@ -29,7 +29,31 @@ const config = window.BETTER_TAB_CONFIG ?? {
 
 if (config.wallpaper) {
     document.body.classList.add("has-wallpaper");
-    document.body.style.background = `url("${config.wallpaper}") center / cover no-repeat fixed`;
+    // Set wallpaper via custom property so ::after can own the layer (enabling zoom transition).
+    document.documentElement.style.setProperty("--wallpaper-url", `url("${config.wallpaper}")`);
+
+    // Peek hint — bottom left, only shown when wallpaper is configured.
+    const peekHint = document.createElement("div");
+    peekHint.className = "peek-hint";
+    peekHint.innerHTML = `<kbd>⌃H</kbd> Hide elements`;
+    document.body.appendChild(peekHint);
+
+    // Hold Ctrl+H to peek at the wallpaper.
+    let peeking = false;
+    window.addEventListener("keydown", (e) => {
+        if (peeking) return;
+        if (e.key === "h" && e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            peeking = true;
+            document.body.classList.add("wallpaper-peek");
+        }
+    });
+    const endPeek = () => {
+        peeking = false;
+        document.body.classList.remove("wallpaper-peek");
+    };
+    window.addEventListener("keyup", (e) => { if (e.key === "h") endPeek(); });
+    window.addEventListener("blur", endPeek);
 }
 
 const searchInput = document.getElementById("search");
@@ -42,6 +66,44 @@ const searchHint = document.querySelector(".search-hint");
 // page JavaScript cannot override it, even inside an extension.
 // Workaround: press Escape to release the address bar, which returns focus
 // to the page and triggers the listener below.
+// Clock
+if (config.showClock !== false) {
+    const clockEl = document.getElementById("clock");
+    const use24h = (config.clockFormat ?? "12h") === "24h";
+    const clockSize = config.clockSize ?? "md";
+    clockEl.classList.add(`clock--${clockSize}`);
+    clockEl.hidden = false;
+
+    function updateClock() {
+        const now = new Date();
+        let h = now.getHours();
+        const m = String(now.getMinutes()).padStart(2, "0");
+        if (use24h) {
+            clockEl.textContent = `${String(h).padStart(2, "0")}:${m}`;
+        } else {
+            const ampm = h >= 12 ? "pm" : "am";
+            h = h % 12 || 12;
+            clockEl.innerHTML = `${h}:${m}<span class="clock-ampm">${ampm}</span>`;
+        }
+    }
+
+    updateClock();
+    // Sync to the next minute boundary then tick every minute.
+    setTimeout(() => {
+        updateClock();
+        setInterval(updateClock, 60000);
+    }, (60 - new Date().getSeconds()) * 1000);
+}
+
+// Once popIn animation ends, replace animation-held values with static inline
+// styles so CSS transitions (e.g. wallpaper peek) can take over cleanly.
+const container = document.querySelector(".container");
+container.addEventListener("animationend", () => {
+    container.style.opacity = "1";
+    container.style.transform = "translateY(2px)";
+    container.style.animation = "none";
+}, { once: true });
+
 // Ctrl+S focuses the search bar from anywhere (notes textarea blocks it via stopPropagation).
 window.addEventListener("keydown", (e) => {
     if (e.key === "s" && e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey) {
@@ -67,25 +129,120 @@ chrome.storage?.local.get(["bookmarks"], (result) => {
 });
 let currentIndex = -1;
 let activePowerup = null;
+let originalQuery = "";  // preserves typed text while arrowing through suggestions
+
+// --- Search suggestions ---
+const suggestionsEnabled = config.searchSuggestions !== false;
+let suggestFetchController = null;
+let suggestDebounceTimer = null;
+
+async function fetchSuggestions(query) {
+    if (suggestFetchController) suggestFetchController.abort();
+    suggestFetchController = new AbortController();
+    try {
+        const url = `https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list`;
+        const res = await fetch(url, { signal: suggestFetchController.signal });
+        const data = await res.json();
+        // OpenSearch format: ["query", ["sug1", "sug2", ...]]
+        return Array.isArray(data[1]) ? data[1] : [];
+    } catch {
+        return [];
+    }
+}
+
+function scheduleSuggestions(query) {
+    clearTimeout(suggestDebounceTimer);
+    if (!suggestionsEnabled || !query) return;
+    suggestDebounceTimer = setTimeout(async () => {
+        const suggestions = await fetchSuggestions(query);
+        if (!suggestions.length) return;
+        // Don't render if user has already cleared the input or activated a powerup
+        if (activePowerup || searchInput.value.trim().toLowerCase() !== query) return;
+        positionSuggestions();
+        appendSuggestionItems(suggestions);
+    }, 300);
+}
 
 searchInput.addEventListener("input", handleInput);
 searchInput.addEventListener("keydown", handleKeyNavigation);
 
+function positionSuggestions() {
+    const rect = searchWrapper.getBoundingClientRect();
+    suggestionsList.style.top = `${rect.bottom + 10}px`;
+    suggestionsList.style.left = `${rect.left}px`;
+    suggestionsList.style.width = `${rect.width}px`;
+}
+
+positionSuggestions();
+window.addEventListener("resize", positionSuggestions);
+
 function handleInput() {
     if (activePowerup) {
-        // In powerup mode the input is the search query — don't show suggestions.
         suggestionsList.innerHTML = "";
         return;
     }
     updateSuggestions();
+    scheduleSuggestions(searchInput.value.trim().toLowerCase());
+}
+
+function makeSuggestionIcon() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "13");
+    svg.setAttribute("height", "13");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = `
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <path d="M5 3v4"/><path d="M19 17v4"/>
+        <path d="M3 5h4"/><path d="M17 19h4"/>`;
+    return svg;
+}
+
+function appendSuggestionItems(suggestions) {
+    // Replace only API suggestion items — local items stay untouched.
+    suggestionsList.querySelectorAll(".suggestion-item").forEach((el) => el.remove());
+
+    suggestions.slice(0, 5).forEach((phrase) => {
+        const li = document.createElement("li");
+        li.classList.add("suggestion-item");
+        li._suggestion = true;
+        li._query = phrase;
+
+        const icon = makeSuggestionIcon();
+        icon.classList.add("suggestion-icon");
+        li.appendChild(icon);
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "suggestion-name";
+        nameSpan.textContent = phrase;
+        li.appendChild(nameSpan);
+
+        li.addEventListener("mousedown", (e) => e.preventDefault());
+        li.addEventListener("click", () => {
+            openUrl(buildSearchUrl(getSearchEngineBaseUrl(), phrase));
+        });
+
+        suggestionsList.appendChild(li);
+    });
+
+    updateCmdHint();
 }
 
 function updateSuggestions() {
     const query = searchInput.value.trim().toLowerCase();
-    suggestionsList.innerHTML = "";
     currentIndex = -1;
+    originalQuery = query;
+    positionSuggestions();
 
-    if (!query) return;
+    if (!query) {
+        suggestionsList.innerHTML = "";
+        return;
+    }
 
     // Score bookmarks: 2 = name match, 1 = tag match.
     const scoredBookmarks = bookmarks
@@ -130,8 +287,13 @@ function updateSuggestions() {
         return an.localeCompare(bn);
     });
 
-    all.forEach(({ item, type }, index) => {
+    // Replace only local items — API suggestions stay visible until their update arrives.
+    suggestionsList.querySelectorAll(".local-item").forEach((el) => el.remove());
+
+    const fragment = document.createDocumentFragment();
+    all.forEach(({ item, type }) => {
         const li = document.createElement("li");
+        li.classList.add("local-item");
 
         const nameSpan = document.createElement("span");
         nameSpan.className = "suggestion-name";
@@ -149,25 +311,31 @@ function updateSuggestions() {
             li.appendChild(badge);
             li.classList.add("powerup-suggestion");
             li._powerup = item;
-
             li.addEventListener("mousedown", (e) => e.preventDefault());
             li.addEventListener("click", () => activatePowerup(item));
         } else {
             li.dataset.url = item.url;
-
             li.addEventListener("mousedown", (e) => e.preventDefault());
             li.addEventListener("click", () => openUrl(item.url));
         }
 
-        if (index === 0) {
-            const hint = document.createElement("span");
-            hint.className = "cmd-hint";
-            hint.innerHTML = "<kbd>⌘</kbd><kbd>↵</kbd>";
-            li.appendChild(hint);
-        }
-
-        suggestionsList.appendChild(li);
+        fragment.appendChild(li);
     });
+
+    // Prepend local items before any existing API suggestions.
+    suggestionsList.prepend(fragment);
+    updateCmdHint();
+}
+
+function updateCmdHint() {
+    suggestionsList.querySelectorAll(".cmd-hint").forEach((el) => el.remove());
+    const first = suggestionsList.querySelector("li");
+    if (first) {
+        const hint = document.createElement("span");
+        hint.className = "cmd-hint";
+        hint.innerHTML = "<kbd>⌘</kbd><kbd>↵</kbd>";
+        first.appendChild(hint);
+    }
 }
 
 function getPowerupLabel(powerup) {
@@ -177,10 +345,13 @@ function getPowerupLabel(powerup) {
 }
 
 function activatePowerup(powerup) {
-    // App powerups open immediately and close the tab.
+    // App powerups open the URL and close this new-tab page.
+    // The delay gives the OS time to dispatch the protocol handler before the tab is removed.
     if (powerup.type === "app") {
-        window.location.href = powerup.url;
-        chrome.tabs.getCurrent((tab) => chrome.tabs.remove(tab.id));
+        chrome.tabs.getCurrent((tab) => {
+            window.location.href = powerup.url;
+            setTimeout(() => { if (tab) chrome.tabs.remove(tab.id); }, 500);
+        });
         return;
     }
 
@@ -237,16 +408,18 @@ function handleKeyNavigation(event) {
     // --- Normal mode ---
     const items = suggestionsList.querySelectorAll("li");
 
-    if (event.key === "ArrowDown") {
+    if (event.key === "ArrowDown" || (event.key === "Tab" && !event.shiftKey)) {
         if (items.length === 0) return;
+        if (currentIndex === -1) originalQuery = searchInput.value.trim();
         currentIndex = (currentIndex + 1) % items.length;
         updateHighlight();
         event.preventDefault();
         return;
     }
 
-    if (event.key === "ArrowUp") {
+    if (event.key === "ArrowUp" || (event.key === "Tab" && event.shiftKey)) {
         if (items.length === 0) return;
+        if (currentIndex === -1) originalQuery = searchInput.value.trim();
         currentIndex = (currentIndex - 1 + items.length) % items.length;
         updateHighlight();
         event.preventDefault();
@@ -295,6 +468,8 @@ function handleKeyNavigation(event) {
 function activateSuggestion(li) {
     if (li._powerup) {
         activatePowerup(li._powerup);
+    } else if (li._suggestion) {
+        openUrl(buildSearchUrl(getSearchEngineBaseUrl(), li._query));
     } else {
         openUrl(li.dataset.url);
     }
@@ -305,6 +480,12 @@ function updateHighlight() {
     items.forEach((item, index) => {
         item.classList.toggle("highlight", index === currentIndex);
     });
+    const highlighted = items[currentIndex];
+    if (highlighted?._suggestion) {
+        searchInput.value = highlighted._query;
+    } else {
+        searchInput.value = originalQuery;
+    }
 }
 
 function buildPowerupUrl(powerup, query) {
@@ -360,6 +541,9 @@ function buildSearchUrl(engineBaseUrl, query) {
 }
 
 function normalizeToUrlIfPossible(input) {
+    // Anything with whitespace is a search query, not a URL.
+    if (/\s/.test(input)) return null;
+
     // If it already looks like a URL with scheme, accept it.
     if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(input)) {
         try {

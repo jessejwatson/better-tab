@@ -1,3 +1,26 @@
+(function applyTheme() {
+    const cfg = window.BETTER_TAB_CONFIG ?? {};
+    const pref = (cfg.popupTheme ?? "match").toLowerCase();
+
+    let resolved;
+    if (pref === "dark" || pref === "light") {
+        resolved = pref;
+    } else if (pref === "match") {
+        // Mirror the main app theme setting.
+        const appTheme = (cfg.theme ?? "system").toLowerCase();
+        if (appTheme === "dark" || appTheme === "light") {
+            resolved = appTheme;
+        } else {
+            resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+    } else {
+        // "system" or unrecognised
+        resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+
+    document.documentElement.dataset.theme = resolved;
+})();
+
 const nameInput = document.getElementById("name");
 const urlInput  = document.getElementById("url");
 const tagsInput = document.getElementById("tags");
@@ -56,6 +79,8 @@ function renderState(state) {
         addButton("Save bookmark", "primary", handleSave);
         addButton("Copy entry", "secondary", handleCopy);
     }
+
+    addButton("Save to notes", "secondary full", handleSaveToNotes);
 }
 
 function showBadge(text, style) {
@@ -97,6 +122,19 @@ function handleRemove(e) {
     const btn = e.currentTarget;
     storageBookmarks.splice(storageMatchIndex, 1);
     persist(() => setFeedback(btn, "Removed!", 800, true));
+}
+
+function handleSaveToNotes(e) {
+    const btn = e.currentTarget;
+    const url = urlInput.value.trim() || currentTab?.url || "";
+    if (!url) return;
+    chrome.storage.local.get(["notesContent"], (result) => {
+        const existing = (result.notesContent ?? "").trimEnd();
+        const updated = existing ? `${existing}\n- [${url}](${url})` : `- [${url}](${url})`;
+        chrome.storage.local.set({ notesContent: updated }, () => {
+            setFeedback(btn, "Saved to notes!", 900, true);
+        });
+    });
 }
 
 function handleCopy(e) {

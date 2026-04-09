@@ -7,6 +7,8 @@
         <link rel="stylesheet" href="styles.css" />
     </head>
     <body>
+        <div class="page-center">
+        <div id="clock" class="clock" hidden></div>
         <div class="container">
             <div id="search-wrapper" class="search-wrapper">
                 <span id="active-powerup" class="powerup-chip" hidden></span>
@@ -18,7 +20,6 @@
                 />
                 <kbd class="search-hint">⌃S</kbd>
             </div>
-            <ul id="suggestions" class="suggestions"></ul>
             <div id="notes-panel" class="notes-panel">
                 <div class="notes-header">
                     <span class="notes-label">Notes <kbd class="notes-shortcut">⌃N</kbd></span>
@@ -32,13 +33,9 @@
                 <textarea id="notes-textarea" class="notes-textarea" placeholder="Start writing in Markdown…" hidden></textarea>
             </div>
         </div>
+        </div>
+        <ul id="suggestions" class="suggestions"></ul>
         <div class="dev-buttons">
-            <button id="configure-btn" class="dev-btn" title="Copies command to clipboard — paste in terminal to edit">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                </svg>
-                Edit config
-            </button>
             <button id="notes-toggle" class="dev-btn" title="Toggle notes (⌃⇧N) · Focus/open notes (⌃N)">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -48,6 +45,12 @@
                 </svg>
                 Notes
                 <kbd class="dev-btn-shortcut">⌃⇧N</kbd>
+            </button>
+            <button id="configure-btn" class="dev-btn" title="Copies command to clipboard — paste in terminal to edit">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                Edit config
             </button>
             <button id="reload-btn" class="dev-btn" title="Open Extensions page to reload">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

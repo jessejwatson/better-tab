@@ -30,6 +30,29 @@
         theme: "dark",
 
         /**
+         * Theme for the browser action popup.
+         *   "match"   — follow the main app theme above (default)
+         *   "system"  — follow the OS preference
+         *   "dark"    — always dark
+         *   "light"   — always light
+         */
+        popupTheme: "system",
+
+        /**
+         * Search suggestions fetched from DuckDuckGo's autocomplete API.
+         * Set to false to disable. Suggestions appear below bookmarks/powerups.
+         */
+        // searchSuggestions: false,
+
+        /**
+         * Show a clock above the search card.
+         * clockFormat: "12h" (default) or "24h"
+         */
+        // showClock: true,
+        clockFormat: "24h",
+        clockSize: "lg",   // "xs" | "sm" | "md" (default) | "lg" | "xl" | "2xl" | "3xl"
+
+        /**
          * Base URL for search. The app will append `?q=<query>`.
          * Examples:
          * - DuckDuckGo: https://duckduckgo.com/
@@ -237,6 +260,21 @@
                 url: "https://flows.lindisfarne.nsw.edu.au/cctv-alerting-config/",
                 tags: ["management", "camera"],
             },
+            {
+                name: "Ticket Dashboard",
+                url: "https://flows.lindisfarne.nsw.edu.au/tickets/index.htm",
+                tags: ["tickets", "support"],
+            },
+            {
+                name: "Signage Admin",
+                url: "https://flows.lindisfarne.nsw.edu.au/signage/static/admin.htm",
+                tags: ["management"],
+            },
+            {
+                name: "Group Management",
+                url: "https://flows.lindisfarne.nsw.edu.au/groups/",
+                tags: ["management"],
+            },
         ],
 
         /**
@@ -314,6 +352,28 @@
                 type: "search",
                 url: "https://github.com/?q={search}",
                 tags: ["version control"],
+            },
+            {
+                name: "Localhost",
+                type: "search",
+                url: "http://localhost:{search}",
+                tags: ["development"],
+                placeholder: "Port number..."
+            },
+            {
+                name: "Freshservice - Ticket Search",
+                type: "search",
+                url: "https://helpdesk.lindisfarne.nsw.edu.au/search/tickets?term={search}",
+                tags: ["tickets"],
+                placeholder: "Enter ticket search term..."
+            },
+            {
+                name: "Whois",
+                type: "search",
+                url: "https://www.whois.com/whois/{search}",
+                tags: ["utility"],
+                placeholder: "Enter IP address...",
+                color: "#F5893A",
             },
         ],
     };

@@ -117,12 +117,76 @@ html[data-theme="light"] body {
         linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg2));
 }
 
-/* When a wallpaper is active, replace the noise overlay with a dim veil */
+/* Wallpaper image layer — own pseudo-element so it can scale independently */
+body.has-wallpaper::after {
+    content: "";
+    position: fixed;
+    inset: -6%;   /* oversized so zoom has no edge gap */
+    background-image: var(--wallpaper-url);
+    background-size: cover;
+    background-position: center;
+    z-index: -2;
+    transition: transform 700ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+/* Dim veil over the wallpaper */
 body.has-wallpaper::before {
     background-image: none;
     background: rgba(0, 0, 0, 0.38);
     opacity: 1;
     mix-blend-mode: normal;
+    transition: opacity 500ms ease;
+}
+
+/* Peek state — elements fade + shrink, wallpaper zooms, dim lifts */
+body.wallpaper-peek::after {
+    transform: scale(1.06);
+}
+
+body.wallpaper-peek::before {
+    opacity: 0;
+}
+
+body.wallpaper-peek .container,
+body.wallpaper-peek .clock,
+body.wallpaper-peek .dev-buttons,
+body.wallpaper-peek .peek-hint,
+body.wallpaper-peek #suggestions {
+    opacity: 0 !important;
+    transform: scale(0.97) !important;
+    pointer-events: none;
+}
+
+/* Peek hint — bottom left, only present when wallpaper is configured */
+.peek-hint {
+    position: fixed;
+    bottom: 20px;
+    left: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    font-family: var(--font);
+    padding: 5px 10px;
+    user-select: none;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity 500ms ease, transform 500ms ease;
+}
+
+.peek-hint kbd {
+    font-family: inherit;
+    font-size: 11px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
 }
 
 /* Subtle noise overlay for depth */
@@ -141,9 +205,87 @@ html[data-theme="light"] body::before {
     mix-blend-mode: multiply;
 }
 
+/* Centered wrapper — clock floats above this, card stays centered */
+.page-center {
+    position: relative;
+    width: min(720px, 92vw);
+}
+
+/* Clock — liquid glass, sits above the card */
+.clock {
+    position: absolute;
+    bottom: calc(100% + 28px);
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 92px; /* overridden by size variants below */
+    font-weight: 200;
+    letter-spacing: -2px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+
+    /* Liquid glass: gradient fill clipped to text */
+    background: linear-gradient(
+        170deg,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(210, 240, 255, 0.9) 30%,
+        rgba(150, 220, 255, 0.75) 60%,
+        rgba(110, 200, 255, 0.55) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    /* Glow and depth */
+    filter:
+        drop-shadow(0 0 40px rgba(110, 231, 255, 0.35))
+        drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+
+    transition: opacity 500ms ease, transform 500ms ease;
+}
+
+html[data-theme="light"] .clock {
+    background: linear-gradient(
+        170deg,
+        rgba(15, 23, 80, 0.9) 0%,
+        rgba(14, 100, 200, 0.75) 40%,
+        rgba(14, 165, 233, 0.65) 70%,
+        rgba(100, 200, 255, 0.5) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter:
+        drop-shadow(0 0 30px rgba(14, 165, 233, 0.3))
+        drop-shadow(0 2px 8px rgba(2, 6, 23, 0.2));
+}
+
+.clock--xs  { font-size: 68px;  letter-spacing: -1px;  bottom: calc(100% + 20px); }
+.clock--sm  { font-size: 92px;  letter-spacing: -2px;  bottom: calc(100% + 28px); }
+.clock--md  { font-size: 128px; letter-spacing: -4px;  bottom: calc(100% + 36px); }
+.clock--lg  { font-size: 168px; letter-spacing: -6px;  bottom: calc(100% + 44px); }
+.clock--xl  { font-size: 216px; letter-spacing: -8px;  bottom: calc(100% + 52px); }
+.clock--2xl { font-size: 272px; letter-spacing: -10px; bottom: calc(100% + 60px); }
+.clock--3xl { font-size: 340px; letter-spacing: -14px; bottom: calc(100% + 68px); }
+
+.clock-ampm {
+    font-weight: 300;
+    letter-spacing: 0;
+    margin-left: 6px;
+    vertical-align: middle;
+    opacity: 0.75;
+}
+.clock--xs  .clock-ampm { font-size: 20px; }
+.clock--sm  .clock-ampm { font-size: 28px; }
+.clock--md  .clock-ampm { font-size: 38px; }
+.clock--lg  .clock-ampm { font-size: 52px; }
+.clock--xl  .clock-ampm { font-size: 68px; }
+.clock--2xl .clock-ampm { font-size: 86px; }
+.clock--3xl .clock-ampm { font-size: 108px; }
+
 /* Center card */
 .container {
-    width: min(720px, 92vw);
+    width: 100%;
     padding: 22px;
     border-radius: var(--radius-xl);
 
@@ -155,6 +297,7 @@ html[data-theme="light"] body::before {
 
     transform: translateY(2px);
     animation: popIn 520ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    transition: opacity 500ms ease, transform 500ms ease;
 }
 
 /* Top "glow" */
@@ -356,18 +499,20 @@ html[data-theme="dark"] #search::placeholder {
     color: rgba(255, 255, 255, 0.55);
 }
 
-/* Suggestions dropdown */
+/* Suggestions dropdown — fixed outside .container to escape its backdrop-filter stacking context */
 .suggestions {
     list-style: none;
     padding: 10px;
-    margin: 14px 0 0;
+    margin: 0;
+    position: fixed;
+    z-index: 100;
     border-radius: var(--radius-lg);
 
-    background: rgba(12, 18, 38, 0.62);
+    background: rgba(12, 18, 38, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
 
     max-height: min(360px, 52vh);
     overflow: auto;
@@ -378,7 +523,7 @@ html[data-theme="dark"] #search::placeholder {
 }
 
 html[data-theme="light"] .suggestions {
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.97);
     border-color: rgba(15, 23, 42, 0.1);
     box-shadow: var(--shadow-soft);
 }
@@ -459,6 +604,17 @@ html[data-theme="dark"] .suggestions li.highlight {
     );
     border: 1px solid rgba(110, 231, 255, 0.22);
     color: rgba(255, 255, 255, 0.95);
+}
+
+/* Search suggestion icon */
+.suggestion-icon {
+    flex-shrink: 0;
+    opacity: 0.3;
+    color: var(--accent);
+}
+
+html[data-theme="light"] .suggestion-icon {
+    color: #0ea5e9;
 }
 
 /* Suggestion name — grows to fill available space */
@@ -700,6 +856,7 @@ html[data-theme="light"] .notes-shortcut {
 
 /* Markdown content */
 .notes-preview > * + * { margin-top: 0.45em; }
+.notes-preview .notes-spacer { height: 0.7em; }
 .notes-preview h1 { font-size: 1.35em; font-weight: 700; margin: 0.5em 0 0.2em; line-height: 1.3; }
 .notes-preview h2 { font-size: 1.15em; font-weight: 600; margin: 0.45em 0 0.15em; }
 .notes-preview h3 { font-size: 1.05em; font-weight: 600; margin: 0.4em 0 0.1em; }
@@ -805,6 +962,7 @@ html[data-theme="light"] .notes-preview hr {
     right: 24px;
     display: flex;
     gap: 8px;
+    transition: opacity 500ms ease, transform 500ms ease;
 }
 
 .dev-btn {
@@ -859,6 +1017,27 @@ html[data-theme="light"] .dev-btn:hover {
     color: rgba(15, 23, 42, 0.6);
     border-color: rgba(15, 23, 42, 0.25);
     background: rgba(15, 23, 42, 0.05);
+}
+
+/* Dev buttons over a wallpaper — needs more contrast against unknown photo content */
+body.has-wallpaper .dev-btn {
+    background: rgba(0, 0, 0, 0.45);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+body.has-wallpaper .dev-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+body.has-wallpaper .dev-btn.active {
+    background: rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 @keyframes popIn {

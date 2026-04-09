@@ -36,6 +36,12 @@ notesPreview.addEventListener("click", (e) => {
         toggleTask(parseInt(e.target.dataset.taskIndex), e.target.checked);
         return;
     }
+    const link = e.target.closest("a");
+    if (link) {
+        e.preventDefault();
+        window.location.href = link.href;
+        return;
+    }
     showEditMode();
 });
 
@@ -89,6 +95,7 @@ document.getElementById("notes-clear-btn").addEventListener("click", () => {
 // --- Mode helpers ---
 
 function showEditMode() {
+    notesTextarea.style.height = notesPreview.offsetHeight + "px";
     notesPreview.hidden = true;
     notesTextarea.hidden = false;
     notesTextarea.focus();
@@ -165,7 +172,7 @@ function parseMarkdown(md) {
     while (i < lines.length) {
         const line = lines[i];
 
-        if (!line.trim()) { i++; continue; }
+        if (!line.trim()) { html += '<div class="notes-spacer"></div>'; i++; continue; }
 
         // Fenced code block
         if (line.startsWith("```")) {
@@ -265,7 +272,7 @@ function inline(text) {
         .replace(/`(.+?)`/g,             "<code>$1</code>")
         .replace(/\[(.+?)\]\((.+?)\)/g, (_, t, url) => {
             const safe = /^https?:|^\/|^mailto:/.test(url) ? url : "#";
-            return `<a href="${safe}" target="_blank" rel="noopener">${t}</a>`;
+            return `<a href="${safe}">${t}</a>`;
         });
 }
 

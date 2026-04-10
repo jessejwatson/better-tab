@@ -43,7 +43,7 @@ Better Tab has two configuration tiers:
 
 | Tier                      | Who it's for           | How it works                                                         |
 | ------------------------- | ---------------------- | -------------------------------------------------------------------- |
-| **Bundled** (`config.js`) | Default for all users  | Edit the JS file directly; reload the extension to apply             |
+| **Chrome profile* | Default for all users  | Edit the JS file directly; reload the extension to apply             |
 | **Config directory**      | Power users / dotfiles | Link a local folder; changes apply on next new tab, no reload needed |
 
 ### Bundled config (`config.js`)

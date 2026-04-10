@@ -135,17 +135,22 @@ function toggleTask(index, checked) {
     chrome.storage.local.set({ notesContent: notesTextarea.value });
 }
 
-// Keyboard shortcuts (textarea's stopPropagation naturally blocks these while editing).
+// Keyboard shortcuts — Ctrl+N / Ctrl+Shift+N on Mac, Alt+N / Alt+Shift+N on Windows.
+// The textarea's stopPropagation naturally blocks these while editing.
+// isMac is declared in script.js (loaded before this file) and shared via the global lexical scope.
 window.addEventListener("keydown", (e) => {
-    if (!e.ctrlKey || e.metaKey || e.altKey) return;
+    const modOk = isMac
+        ? (e.ctrlKey && !e.metaKey && !e.altKey)
+        : (e.altKey  && !e.ctrlKey && !e.metaKey);
+    if (!modOk) return;
     if (e.key.toLowerCase() !== "n") return;
 
     e.preventDefault();
     if (e.shiftKey) {
-        // Ctrl+Shift+N: toggle notes panel
+        // Ctrl+Shift+N (Mac) / Alt+Shift+N (Windows): toggle notes panel
         notesToggleBtn.click();
     } else {
-        // Ctrl+N: blur textarea if active; open+focus if hidden; focus if open but not editing
+        // Ctrl+N (Mac) / Alt+N (Windows): blur textarea if active; open+focus if hidden; focus if open but not editing
         if (!notesTextarea.hidden) {
             notesTextarea.blur();
         } else if (!notesPanel.classList.contains("open")) {

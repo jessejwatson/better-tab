@@ -2,11 +2,13 @@
  * Configuration is loaded from `config.js` via the global `window.BETTER_TAB_CONFIG`.
  * This keeps the app working under `file://` (no imports / no fetch).
  */
-const config = window.BETTER_TAB_CONFIG ?? {
+let config = window.BETTER_TAB_CONFIG ?? {
     searchEngineBaseUrl: "https://duckduckgo.com/",
     bookmarks: [],
     powerups: [],
 };
+
+const isMac = /Mac/i.test(navigator.platform);
 
 // Apply theme — resolves "system" to the actual OS preference so CSS can use
 // a single data-theme attribute selector instead of @media queries.
@@ -27,22 +29,25 @@ const config = window.BETTER_TAB_CONFIG ?? {
     }
 })();
 
-if (config.wallpaper) {
-    document.body.classList.add("has-wallpaper");
-    // Set wallpaper via custom property so ::after can own the layer (enabling zoom transition).
-    document.documentElement.style.setProperty("--wallpaper-url", `url("${config.wallpaper}")`);
+// Peek feature — hold Ctrl+H to hide UI elements and see the wallpaper.
+// Called once when a wallpaper is first activated (bundled or file config).
+let peekInitialised = false;
+function enableWallpaperPeek() {
+    if (peekInitialised) return;
+    peekInitialised = true;
 
-    // Peek hint — bottom left, only shown when wallpaper is configured.
     const peekHint = document.createElement("div");
     peekHint.className = "peek-hint";
-    peekHint.innerHTML = `<kbd>⌃H</kbd> Hide elements`;
+    peekHint.innerHTML = `<kbd>${isMac ? "⌃H" : "Alt+H"}</kbd> Hide elements`;
     document.body.appendChild(peekHint);
 
-    // Hold Ctrl+H to peek at the wallpaper.
     let peeking = false;
     window.addEventListener("keydown", (e) => {
         if (peeking) return;
-        if (e.key === "h" && e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey) {
+        const modOk = isMac
+            ? (e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey)
+            : (e.altKey  && !e.shiftKey && !e.metaKey && !e.ctrlKey);
+        if (e.key === "h" && modOk) {
             e.preventDefault();
             peeking = true;
             document.body.classList.add("wallpaper-peek");
@@ -56,6 +61,13 @@ if (config.wallpaper) {
     window.addEventListener("blur", endPeek);
 }
 
+if (config.wallpaper) {
+    document.body.classList.add("has-wallpaper");
+    // Set wallpaper via custom property so ::after can own the layer (enabling zoom transition).
+    document.documentElement.style.setProperty("--wallpaper-url", `url("${config.wallpaper}")`);
+    enableWallpaperPeek();
+}
+
 const searchInput = document.getElementById("search");
 const suggestionsList = document.getElementById("suggestions");
 const searchWrapper = document.getElementById("search-wrapper");
@@ -66,11 +78,23 @@ const searchHint = document.querySelector(".search-hint");
 // page JavaScript cannot override it, even inside an extension.
 // Workaround: press Escape to release the address bar, which returns focus
 // to the page and triggers the listener below.
-// Clock
-if (config.showClock !== false) {
+// Clock — initialised via initClock() so it can be re-run after file config loads.
+let _clockTimeout = null;
+let _clockInterval = null;
+
+function initClock() {
+    clearTimeout(_clockTimeout);
+    clearInterval(_clockInterval);
+
     const clockEl = document.getElementById("clock");
+    if (config.showClock === false) {
+        clockEl.hidden = true;
+        return;
+    }
+
     const use24h = (config.clockFormat ?? "12h") === "24h";
     const clockSize = config.clockSize ?? "md";
+    clockEl.className = clockEl.className.replace(/\bclock--\S+/g, "").trim();
     clockEl.classList.add(`clock--${clockSize}`);
     clockEl.hidden = false;
 
@@ -89,11 +113,13 @@ if (config.showClock !== false) {
 
     updateClock();
     // Sync to the next minute boundary then tick every minute.
-    setTimeout(() => {
+    _clockTimeout = setTimeout(() => {
         updateClock();
-        setInterval(updateClock, 60000);
+        _clockInterval = setInterval(updateClock, 60000);
     }, (60 - new Date().getSeconds()) * 1000);
 }
+
+initClock();
 
 // Once popIn animation ends, replace animation-held values with static inline
 // styles so CSS transitions (e.g. wallpaper peek) can take over cleanly.
@@ -104,13 +130,32 @@ container.addEventListener("animationend", () => {
     container.style.animation = "none";
 }, { once: true });
 
-// Ctrl+S focuses the search bar from anywhere (notes textarea blocks it via stopPropagation).
+// Ctrl+S (Mac) / Alt+S (Windows) focuses the search bar from anywhere.
+// Notes textarea blocks this via stopPropagation while editing.
 window.addEventListener("keydown", (e) => {
-    if (e.key === "s" && e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey) {
+    const modOk = isMac
+        ? (e.key === "s" && e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey)
+        : (e.key === "s" && e.altKey  && !e.shiftKey && !e.metaKey && !e.ctrlKey);
+    if (modOk) {
         e.preventDefault();
         searchInput.focus();
     }
 });
+
+// Update static shortcut labels for non-Mac platforms.
+if (!isMac) {
+    const searchHintKbd = document.querySelector(".search-hint");
+    if (searchHintKbd) searchHintKbd.textContent = "Alt+S";
+
+    const notesKbd = document.querySelector(".notes-shortcut");
+    if (notesKbd) notesKbd.textContent = "Alt+N";
+
+    const notesToggleKbd = document.querySelector("#notes-toggle .dev-btn-shortcut");
+    if (notesToggleKbd) notesToggleKbd.textContent = "Alt+⇧N";
+
+    const notesToggleBtn = document.getElementById("notes-toggle");
+    if (notesToggleBtn) notesToggleBtn.title = "Toggle notes (Alt+Shift+N) · Focus/open notes (Alt+N)";
+}
 
 searchInput.focus();
 window.addEventListener("focus", () => {
@@ -120,19 +165,75 @@ window.addEventListener("focus", () => {
 
 let bookmarks = Array.isArray(config.bookmarks) ? config.bookmarks : [];
 let powerups = Array.isArray(config.powerups) ? config.powerups : [];
+let fileConfigApplied = false;
 
 // Merge bookmarks saved via the popup, skipping any URLs already in config.
-chrome.storage?.local.get(["bookmarks"], (result) => {
-    const stored = Array.isArray(result.bookmarks) ? result.bookmarks : [];
-    const configUrls = new Set(bookmarks.map((b) => b.url));
-    bookmarks = [...bookmarks, ...stored.filter((b) => !configUrls.has(b.url))];
-});
+// When file config has been applied, bookmarks already come from config.json —
+// nothing more to do. Otherwise falls back to chrome.storage.local.
+async function mergeStorageBookmarks() {
+    if (fileConfigApplied) return;
+    if (chrome.storage?.local) {
+        chrome.storage.local.get(["bookmarks"], (result) => {
+            const stored = Array.isArray(result.bookmarks) ? result.bookmarks : [];
+            const configUrls = new Set(bookmarks.map((b) => b.url));
+            bookmarks = [...bookmarks, ...stored.filter((b) => !configUrls.has(b.url))];
+        });
+    }
+}
+mergeStorageBookmarks().catch(() => {});
+
+// If a config directory has been linked via the File System Access API, read
+// config.json from that directory and reinitialise bookmarks/powerups/theme.
+//
+// This is a named function (not an IIFE) so it can be retried on first user
+// interaction, which provides the gesture needed for requestPermission() after
+// an extension reload has cleared the File System Access permission.
+async function applyFileConfig() {
+    if (fileConfigApplied || typeof BetterTabFileConfig === "undefined") return;
+    const fileConfig = await BetterTabFileConfig.loadConfig();
+    if (!fileConfig) return;
+    fileConfigApplied = true;
+
+    config = fileConfig;
+
+    // Re-apply theme in case it differs from the bundled config.
+    const pref = (config.theme ?? "system").toLowerCase();
+    const resolved =
+        pref === "dark" || pref === "light"
+            ? pref
+            : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = resolved;
+
+    // Re-apply wallpaper — resolve the filename relative to the config directory.
+    if (config.wallpaper) {
+        document.body.classList.add("has-wallpaper");
+        const blobUrl = await BetterTabFileConfig.getWallpaperUrl(config.wallpaper).catch(() => null);
+        if (blobUrl) {
+            document.documentElement.style.setProperty("--wallpaper-url", `url("${blobUrl}")`);
+            enableWallpaperPeek();
+        }
+    }
+
+    // Re-apply clock (format/size may differ from bundled config).
+    initClock();
+
+    // Re-apply search suggestions setting.
+    suggestionsEnabled = config.searchSuggestions !== false;
+
+    // Reinitialise bookmarks and powerups from the file config, then re-merge
+    // any bookmarks that were saved dynamically via the popup.
+    bookmarks = Array.isArray(config.bookmarks) ? config.bookmarks : [];
+    powerups  = Array.isArray(config.powerups)  ? config.powerups  : [];
+    await mergeStorageBookmarks();
+}
+
+applyFileConfig().catch(() => {});
 let currentIndex = -1;
 let activePowerup = null;
 let originalQuery = "";  // preserves typed text while arrowing through suggestions
 
 // --- Search suggestions ---
-const suggestionsEnabled = config.searchSuggestions !== false;
+let suggestionsEnabled = config.searchSuggestions !== false;
 let suggestFetchController = null;
 let suggestDebounceTimer = null;
 
@@ -333,7 +434,7 @@ function updateCmdHint() {
     if (first) {
         const hint = document.createElement("span");
         hint.className = "cmd-hint";
-        hint.innerHTML = "<kbd>⌘</kbd><kbd>↵</kbd>";
+        hint.innerHTML = isMac ? "<kbd>⌘</kbd><kbd>↵</kbd>" : "<kbd>Ctrl</kbd><kbd>↵</kbd>";
         first.appendChild(hint);
     }
 }
@@ -435,9 +536,9 @@ function handleKeyNavigation(event) {
     if (event.key === "Enter") {
         event.preventDefault();
 
-        // Cmd+Enter: open first suggestion (or activate first powerup) without arrowing.
+        // Cmd+Enter (Mac) / Ctrl+Enter (Windows): open first suggestion without arrowing.
         if (
-            event.metaKey &&
+            (isMac ? event.metaKey : event.ctrlKey) &&
             (currentIndex < 0 || currentIndex >= items.length) &&
             items.length > 0
         ) {
@@ -495,19 +596,23 @@ function buildPowerupUrl(powerup, query) {
     return null;
 }
 
-// Configure button — copies the editor command to clipboard.
+// Configure button — copies an editor command for the linked config.json to clipboard.
+// Only shown when a config directory is linked.
 const configureBtn = document.getElementById("configure-btn");
 configureBtn.addEventListener("click", () => {
-    const path = config.configPath;
-    const editor = config.editor ?? "nvim";
-
-    if (!path) {
-        setDevBtnFeedback(configureBtn, "Set configPath in config.js", 2500);
-        return;
-    }
-
-    navigator.clipboard.writeText(`${editor} "${path}"`).then(() => {
-        setDevBtnFeedback(configureBtn, "Copied — paste in terminal", 2000);
+    const editor = config.editor ?? "nano";
+    chrome.storage.local.get(["linkedConfigDirPath"], (result) => {
+        const dirPath = result.linkedConfigDirPath;
+        if (!dirPath) {
+            setDevBtnFeedback(configureBtn, "No config dir linked", 2000);
+            return;
+        }
+        chrome.runtime.getPlatformInfo((info) => {
+            const sep = info.os === "win" ? "\\" : "/";
+            navigator.clipboard.writeText(`${editor} ${dirPath}${sep}config.json`).then(() => {
+                setDevBtnFeedback(configureBtn, "Copied — paste in terminal", 2000);
+            });
+        });
     });
 });
 
@@ -516,6 +621,88 @@ const reloadBtn = document.getElementById("reload-btn");
 reloadBtn.addEventListener("click", () => {
     chrome.tabs.create({ url: "chrome://extensions/?id=" + chrome.runtime.id });
 });
+
+// Link config dir button — lets power users point the extension at a local
+// config directory (e.g. ~/.config/better-tab/) so their config.js is read
+// from there instead of the bundled copy.
+const linkConfigBtn = document.getElementById("link-config-btn");
+
+async function updateLinkBtn() {
+    // chrome.storage is the fast, reliable source for whether a dir is linked.
+    // IndexedDB dir name is a bonus for the tooltip.
+    const linkedPath = await new Promise(resolve =>
+        chrome.storage.local.get(["linkedConfigDirPath"], (r) => resolve(r.linkedConfigDirPath ?? null))
+    );
+    const dirName = linkedPath
+        ? await BetterTabFileConfig.getDirName().catch(() => null)
+        : null;
+
+    if (linkedPath) {
+        const sep = linkedPath.includes("\\") ? "\\" : "/";
+        const label = dirName ?? linkedPath.split(sep).pop();
+        linkConfigBtn.title = `"${label}" linked — click to unlink`;
+        configureBtn.hidden = false;
+    } else {
+        chrome.runtime.getPlatformInfo((info) => {
+            const defaultPath = info.os === "win"
+                ? "%APPDATA%\\better-tab"
+                : "~/.config/better-tab";
+            linkConfigBtn.title = `Link config directory (${defaultPath})`;
+        });
+        configureBtn.hidden = true;
+    }
+}
+
+if (linkConfigBtn && typeof BetterTabFileConfig !== "undefined") {
+    updateLinkBtn();
+    linkConfigBtn.addEventListener("click", async () => {
+        const linked = await BetterTabFileConfig.isLinked().catch(() => false);
+        if (linked) {
+            if (!confirm("Unlink config directory? Better Tab will fall back to its built-in defaults.")) return;
+            await BetterTabFileConfig.unlink();
+            await new Promise(resolve => chrome.storage.local.remove("linkedConfigDirPath", resolve));
+            setDevBtnFeedback(linkConfigBtn, "Unlinked", 2000);
+            await updateLinkBtn();
+        } else {
+            try {
+                const { configCreated } = await BetterTabFileConfig.link();
+                const dirName = await BetterTabFileConfig.getDirName();
+                const platformInfo = await new Promise(resolve => chrome.runtime.getPlatformInfo(resolve));
+                const defaultPath = platformInfo.os === "win"
+                    ? `%APPDATA%\\${dirName}`
+                    : `~/.config/${dirName}`;
+                const dirPath = window.prompt(
+                    `Enter the full path to the "${dirName}" directory (used for the Edit config button):`,
+                    defaultPath
+                );
+                if (dirPath) {
+                    await new Promise(resolve => chrome.storage.local.set({ linkedConfigDirPath: dirPath }, resolve));
+                }
+                const msg = configCreated ? "config.json created — reload to apply" : "Linked — reload to apply";
+                setDevBtnFeedback(linkConfigBtn, msg, 3000);
+                await updateLinkBtn();
+            } catch (err) {
+                // User cancelled the picker (AbortError) — don't show an error.
+                if (err?.name !== "AbortError") {
+                    setDevBtnFeedback(linkConfigBtn, "Failed to link", 2000);
+                }
+            }
+        }
+    });
+}
+
+// Retry loading the file config on the first user interaction.
+// After an extension reload, the File System Access permission is cleared and
+// requestPermission() requires a user gesture — a keypress or click qualifies.
+if (typeof BetterTabFileConfig !== "undefined") {
+    const onFirstInteraction = () => {
+        applyFileConfig().catch(() => {});
+        window.removeEventListener("keydown", onFirstInteraction, true);
+        window.removeEventListener("pointerdown", onFirstInteraction, true);
+    };
+    window.addEventListener("keydown", onFirstInteraction, true);
+    window.addEventListener("pointerdown", onFirstInteraction, true);
+}
 
 function setDevBtnFeedback(btn, message, duration) {
     const original = btn.innerHTML;

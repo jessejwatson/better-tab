@@ -91,9 +91,10 @@ body {
         ),
         linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg2));
     display: grid;
-    place-items: center;
+    place-items: safe center;
     padding: 28px;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 html[data-theme="light"] body {

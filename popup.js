@@ -1,5 +1,10 @@
-(function applyTheme() {
-    const cfg = window.BETTER_TAB_CONFIG ?? {};
+(async function applyTheme() {
+    let cfg = window.BETTER_TAB_CONFIG ?? {};
+    if (typeof BetterTabFileConfig !== "undefined") {
+        const fileCfg = await BetterTabFileConfig.loadConfig().catch(() => null);
+        if (fileCfg) cfg = fileCfg;
+    }
+
     const pref = (cfg.popupTheme ?? "match").toLowerCase();
 
     let resolved;
@@ -35,29 +40,40 @@ let storageMatchIndex = -1;
 
 // --- Init ---
 
-chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+(async function init() {
+    const [tab] = await new Promise(resolve =>
+        chrome.tabs.query({ active: true, currentWindow: true }, resolve)
+    );
     currentTab = tab;
 
-    chrome.storage.local.get(["bookmarks"], (result) => {
-        storageBookmarks = Array.isArray(result.bookmarks) ? result.bookmarks : [];
-        storageMatchIndex = storageBookmarks.findIndex((b) => b.url === tab.url);
+    // When a config directory is linked, read bookmarks from bookmarks.json.
+    // Fall back to chrome.storage.local if not linked or file unavailable.
+    let fileBookmarks = null;
+    if (typeof BetterTabFileConfig !== "undefined") {
+        fileBookmarks = await BetterTabFileConfig.getStoredBookmarks().catch(() => null);
+    }
+    storageBookmarks = fileBookmarks ?? await new Promise(resolve =>
+        chrome.storage.local.get(["bookmarks"], (r) =>
+            resolve(Array.isArray(r.bookmarks) ? r.bookmarks : [])
+        )
+    );
 
-        const configMatch = configBookmarks.find((b) => b.url === tab.url);
+    storageMatchIndex = storageBookmarks.findIndex((b) => b.url === tab.url);
+    const configMatch = configBookmarks.find((b) => b.url === tab.url);
 
-        if (storageMatchIndex >= 0) {
-            prefill(storageBookmarks[storageMatchIndex]);
-            renderState("stored");
-        } else if (configMatch) {
-            prefill(configMatch);
-            renderState("config");
-        } else {
-            nameInput.value = tab.title ?? "";
-            urlInput.value  = tab.url  ?? "";
-            nameInput.select();
-            renderState("new");
-        }
-    });
-});
+    if (storageMatchIndex >= 0) {
+        prefill(storageBookmarks[storageMatchIndex]);
+        renderState("stored");
+    } else if (configMatch) {
+        prefill(configMatch);
+        renderState("config");
+    } else {
+        nameInput.value = tab.title ?? "";
+        urlInput.value  = tab.url  ?? "";
+        nameInput.select();
+        renderState("new");
+    }
+})();
 
 // --- Render states ---
 
@@ -68,16 +84,13 @@ function renderState(state) {
     if (state === "stored") {
         showBadge("Saved in Better Tab", "accent");
         addButton("Update bookmark", "primary", handleUpdate);
-        addButton("Copy entry", "secondary", handleCopy);
         addButton("Remove bookmark", "danger", handleRemove);
 
     } else if (state === "config") {
         showBadge("Saved in config.js", "muted");
-        addButton("Copy update entry", "secondary full", handleCopy);
 
     } else {
         addButton("Save bookmark", "primary", handleSave);
-        addButton("Copy entry", "secondary", handleCopy);
     }
 
     addButton("Save to notes", "secondary full", handleSaveToNotes);
@@ -137,15 +150,6 @@ function handleSaveToNotes(e) {
     });
 }
 
-function handleCopy(e) {
-    const bookmark = buildBookmark();
-    if (!bookmark) return;
-    const btn = e.currentTarget;
-    navigator.clipboard.writeText(formatEntry(bookmark)).then(() => {
-        setFeedback(btn, "Copied!", 1500);
-    });
-}
-
 // --- Helpers ---
 
 function prefill({ name, url, tags }) {
@@ -162,13 +166,13 @@ function buildBookmark() {
     return { name, url, tags };
 }
 
-function formatEntry({ name, url, tags }) {
-    const tagsStr = tags.length ? `["${tags.join('", "')}"]` : "[]";
-    return `            {\n                name: "${name}",\n                url: "${url}",\n                tags: ${tagsStr},\n            },`;
-}
-
 function persist(callback) {
+    // Always write to chrome.storage.local as a fallback.
     chrome.storage.local.set({ bookmarks: storageBookmarks }, callback);
+    // Mirror to bookmarks.json in the linked config directory if available.
+    if (typeof BetterTabFileConfig !== "undefined") {
+        BetterTabFileConfig.saveStoredBookmarks(storageBookmarks).catch(() => {});
+    }
 }
 
 function setFeedback(btn, message, duration, closeAfter = false) {

@@ -43,12 +43,12 @@ Better Tab has two configuration tiers:
 
 | Tier                      | Who it's for           | How it works                                                         |
 | ------------------------- | ---------------------- | -------------------------------------------------------------------- |
-| **Chrome profile** | Default for all users  | Edit the JS file directly; reload the extension to apply             |
+| **Chrome profile**        | Default for all users  | Bookmarks are stored in your Chrome profile                           |
 | **Config directory**      | Power users / dotfiles | Link a local folder; changes apply on next new tab, no reload needed |
 
-### Bundled config (`config.js`)
+### Chrome profile
 
-Edit `config.js` in the extension folder. After saving, use the **Reload** button (bottom-right of the new tab page) or reload the extension at `chrome://extensions`.
+By default, all bookmarks are saved to your Chrome profile. This limits the features you have access to - use the "Config directory" option for custom theme logic, wallpaper, powerups, etc.
 
 ### Config directory (dotfiles-style)
 
@@ -88,12 +88,6 @@ The **Edit config** button (pencil icon, only shown when a directory is linked) 
 
 ### Wallpaper
 
-**Bundled config** — place an image in the extension folder and reference it by name:
-
-```jsonc
-"wallpaper": "wallpaper.jpg"
-```
-
 **Config directory** — place the image in your config directory and reference it by filename. Better Tab resolves the path relative to the linked directory:
 
 ```jsonc
@@ -117,7 +111,7 @@ Hold `Ctrl+H` (Mac) or `Alt+H` (Windows) to temporarily hide all UI and see the 
 "searchSuggestions": true
 ```
 
-### Bookmarks (`bookmarks.json` or `config.js`)
+### Bookmarks (`bookmarks.json`)
 
 ```json
 [
@@ -128,7 +122,7 @@ Hold `Ctrl+H` (Mac) or `Alt+H` (Windows) to temporarily hide all UI and see the 
 
 Bookmarks can also be added or removed live via the browser action popup (the extension icon in your toolbar). Popup-saved bookmarks are written back to `bookmarks.json` when a config directory is linked, keeping the file as the source of truth.
 
-### Powerups (`powerups.json` or `config.js`)
+### Powerups (`powerups.json`)
 
 Powerups appear in the suggestion list and activate a special mode when selected.
 
@@ -161,8 +155,6 @@ Powerups appear in the suggestion list and activate a special mode when selected
     "color": "#cc785c"
 }
 ```
-
-Find an app's URL scheme in its `Info.plist` under `CFBundleURLTypes`, or search `"<AppName> URL scheme"`.
 
 ---
 

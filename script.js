@@ -3,7 +3,6 @@
  * This keeps the app working under `file://` (no imports / no fetch).
  */
 let config = window.BETTER_TAB_CONFIG ?? {
-    searchEngineBaseUrl: "https://duckduckgo.com/",
     bookmarks: [],
     powerups: [],
 };
@@ -217,9 +216,6 @@ async function applyFileConfig() {
     // Re-apply clock (format/size may differ from bundled config).
     initClock();
 
-    // Re-apply search suggestions setting.
-    suggestionsEnabled = config.searchSuggestions !== false;
-
     // Reinitialise bookmarks and powerups from the file config, then re-merge
     // any bookmarks that were saved dynamically via the popup.
     bookmarks = Array.isArray(config.bookmarks) ? config.bookmarks : [];
@@ -231,38 +227,6 @@ applyFileConfig().catch(() => {});
 let currentIndex = -1;
 let activePowerup = null;
 let originalQuery = "";  // preserves typed text while arrowing through suggestions
-
-// --- Search suggestions ---
-let suggestionsEnabled = config.searchSuggestions !== false;
-let suggestFetchController = null;
-let suggestDebounceTimer = null;
-
-async function fetchSuggestions(query) {
-    if (suggestFetchController) suggestFetchController.abort();
-    suggestFetchController = new AbortController();
-    try {
-        const url = `https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list`;
-        const res = await fetch(url, { signal: suggestFetchController.signal });
-        const data = await res.json();
-        // OpenSearch format: ["query", ["sug1", "sug2", ...]]
-        return Array.isArray(data[1]) ? data[1] : [];
-    } catch {
-        return [];
-    }
-}
-
-function scheduleSuggestions(query) {
-    clearTimeout(suggestDebounceTimer);
-    if (!suggestionsEnabled || !query) return;
-    suggestDebounceTimer = setTimeout(async () => {
-        const suggestions = await fetchSuggestions(query);
-        if (!suggestions.length) return;
-        // Don't render if user has already cleared the input or activated a powerup
-        if (activePowerup || searchInput.value.trim().toLowerCase() !== query) return;
-        positionSuggestions();
-        appendSuggestionItems(suggestions);
-    }, 300);
-}
 
 searchInput.addEventListener("input", handleInput);
 searchInput.addEventListener("keydown", handleKeyNavigation);
@@ -283,9 +247,12 @@ function handleInput() {
         return;
     }
     updateSuggestions();
-    scheduleSuggestions(searchInput.value.trim().toLowerCase());
+    // TODO: fetch search suggestions and call appendSuggestionItems(suggestions)
 }
 
+// Scaffolding for future search suggestions provider integration.
+// appendSuggestionItems() renders results from an autocomplete API into the
+// shared suggestions list alongside local bookmarks/powerups.
 function makeSuggestionIcon() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "13");
@@ -325,7 +292,7 @@ function appendSuggestionItems(suggestions) {
 
         li.addEventListener("mousedown", (e) => e.preventDefault());
         li.addEventListener("click", () => {
-            openUrl(buildSearchUrl(getSearchEngineBaseUrl(), phrase));
+            chrome.search.query({ text: phrase, disposition: "CURRENT_TAB" });
         });
 
         suggestionsList.appendChild(li);
@@ -562,15 +529,14 @@ function handleKeyNavigation(event) {
             return;
         }
 
-        openUrl(buildSearchUrl(getSearchEngineBaseUrl(), raw));
+        searchWrapper.classList.add("loading");
+        chrome.search.query({ text: raw, disposition: "CURRENT_TAB" });
     }
 }
 
 function activateSuggestion(li) {
     if (li._powerup) {
         activatePowerup(li._powerup);
-    } else if (li._suggestion) {
-        openUrl(buildSearchUrl(getSearchEngineBaseUrl(), li._query));
     } else {
         openUrl(li.dataset.url);
     }
@@ -581,12 +547,7 @@ function updateHighlight() {
     items.forEach((item, index) => {
         item.classList.toggle("highlight", index === currentIndex);
     });
-    const highlighted = items[currentIndex];
-    if (highlighted?._suggestion) {
-        searchInput.value = highlighted._query;
-    } else {
-        searchInput.value = originalQuery;
-    }
+    searchInput.value = originalQuery;
 }
 
 function buildPowerupUrl(powerup, query) {
@@ -714,17 +675,6 @@ function openUrl(url) {
     if (!url) return;
     searchWrapper.classList.add("loading");
     window.open(url, "_self");
-}
-
-function getSearchEngineBaseUrl() {
-    const base = (config?.searchEngineBaseUrl ?? "").toString().trim();
-    return base || "https://duckduckgo.com/";
-}
-
-function buildSearchUrl(engineBaseUrl, query) {
-    const u = new URL(engineBaseUrl, window.location.href);
-    u.searchParams.set("q", query);
-    return u.toString();
 }
 
 function normalizeToUrlIfPossible(input) {

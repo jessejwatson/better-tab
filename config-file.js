@@ -53,9 +53,6 @@
     // "clockFormat": "12h",
     // "clockSize": "md",
 
-    // ── Search ───────────────────────────────────────────────────────────────
-    "searchEngineBaseUrl": "https://duckduckgo.com/",
-    // "searchSuggestions": true,
 }
 `;
 

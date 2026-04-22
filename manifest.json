@@ -17,6 +17,5 @@
         "default_title": "Add bookmark",
         "default_icon": "icons/better_tab_128.png"
     },
-    "permissions": ["tabs", "storage"],
-    "host_permissions": ["https://duckduckgo.com/*"]
+    "permissions": ["tabs", "storage", "search"]
 }
